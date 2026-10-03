@@ -155,6 +155,32 @@ a.detailLink{font-size:11px;color:#00707A;text-decoration:underline;cursor:point
 .pill.full{background:#F9D6D6;color:#9A1F1F}
 
 /* ---- スマホ表示（2026-10-03：PC用の縮小表示になっていた→カード表示） ---- */
+
+/* ---- PC向け：週表示・印刷（2026-10-03） ---- */
+.printbar{display:flex;gap:12px;align-items:center;margin:6px 0 10px}
+body.wide main{max-width:1400px}
+.weekwrap{overflow-x:auto;border:1px solid #eee;border-radius:8px}
+table.week{border-collapse:collapse;width:100%;min-width:900px;table-layout:fixed;font-size:12px}
+table.week th{background:#E0F5F6;color:#00525A;padding:6px 4px;font-size:13px;position:sticky;top:0}
+table.week th.sat{color:#2457A6} table.week th.sun{color:#B23A3A}
+table.week th.today, table.week td.today{background:#F2FBFB}
+table.week td{border:1px solid #EAEAEA;vertical-align:top;padding:3px;height:44px;cursor:pointer}
+table.week td:hover{background:#F7FBFB}
+table.week .seatcol{width:110px;background:#F7FBFB;font-weight:bold;color:#333;text-align:left;padding-left:6px}
+.wk{border-radius:5px;padding:2px 4px;margin-bottom:2px;background:#CFEFF1;color:#00424A;line-height:1.35}
+.wk.sushi{background:#F6E7C8;color:#5A3B00}
+.wk.temp{background:#FFE8B8;color:#7A5200;border:1px dashed #E0A800}
+.wkreq{font-size:10px;color:#555}
+.closedmini{font-size:10px;color:#B23A3A;font-weight:normal}
+@media (max-width: 640px){ .pconly{display:none !important} }
+@media print{
+  header .sub, .topnav, .printbar, #addFromToday, .whoami, .brand{display:none !important}
+  table.today td:first-child, table.today th:first-child{display:none}
+  main{max-width:none;padding:0}
+  .weekwrap{overflow:visible;border:none}
+  table.week{min-width:0;font-size:10px}
+  @page{size:A4 landscape;margin:10mm}
+}
 @media (max-width: 640px){
   main{padding:0 10px 60px}
   header{padding:12px 12px 6px}
@@ -207,6 +233,7 @@ a.detailLink{font-size:11px;color:#00707A;text-decoration:underline;cursor:point
   <div class="topnav">
     <div class="tab" id="navToday">今日</div>
     <div class="tab" id="navMonth">月表示</div>
+    <div class="tab pconly" id="navWeek">週表示</div>
   </div>
   <div class="whoami" id="whoamiBar" style="display:none">
     <span id="whoamiText"></span>
@@ -216,6 +243,7 @@ a.detailLink{font-size:11px;color:#00707A;text-decoration:underline;cursor:point
   <!-- ================= 今日・明日 ================= -->
   <div id="todayView">
     <div style="margin:10px 0"><button class="btn wide" id="addFromToday">＋ 予約を追加</button></div>
+    <div class="pconly printbar"><button class="btn outline small" onclick="window.print()">印刷：今日の予約</button></div>
     <div class="daycard">
       <div class="dtitle" id="todayTitle">本日</div>
       <div class="tempNote" id="todayTempNote"></div>
@@ -244,6 +272,18 @@ a.detailLink{font-size:11px;color:#00707A;text-decoration:underline;cursor:point
     </div>
     <table class="cal" id="calTable"></table>
     <div class="monthTotals" id="monthTotals"></div>
+  </div>
+
+  <!-- ================= 週表示（PCのみ） ================= -->
+  <div id="weekView" style="display:none">
+    <div class="monthbar">
+      <button class="btn outline small" onclick="shiftWeek(-7)">◀ 前の週</button>
+      <div class="label" id="weekLabel"></div>
+      <button class="btn outline small" onclick="shiftWeek(7)">次の週 ▶</button>
+    </div>
+    <div class="printbar"><button class="btn outline small" onclick="window.print()">印刷：この週</button>
+      <span class="hint">マスを押すと、その日の画面を開きます</span></div>
+    <div class="weekwrap"><table class="week" id="weekTable"></table></div>
   </div>
 
   <!-- ================= 日表示 ================= -->
@@ -488,10 +528,65 @@ function showDayView(dateStr, returnTo){
 function setActiveNav(which){
   document.getElementById('navToday').classList.toggle('active', which==='today');
   document.getElementById('navMonth').classList.toggle('active', which==='month');
+  document.getElementById('navWeek').classList.toggle('active', which==='week');
+  if(which!=='week') document.getElementById('weekView').style.display = 'none';
+  document.body.classList.toggle('wide', which==='week'); // 週表示はPCの横幅いっぱいに
+}
+/* ---------- 週表示（PC向け：7日分を部屋ごとに並べる） ---------- */
+let currentWeekStart = localYmd(new Date());
+function showWeekView(){
+  rememberView('week=' + currentWeekStart);
+  setActiveNav('week');
+  ['todayView','monthView','dayView'].forEach(id=> document.getElementById(id).style.display = 'none');
+  document.getElementById('weekView').style.display = 'block';
+  renderWeek();
+}
+function shiftWeek(n){
+  const p = currentWeekStart.split('-').map(Number);
+  currentWeekStart = localYmd(new Date(p[0], p[1]-1, p[2]+n));
+  showWeekView();
+}
+function renderWeek(){
+  const p = currentWeekStart.split('-').map(Number);
+  const end = localYmd(new Date(p[0], p[1]-1, p[2]+6));
+  document.getElementById('weekLabel').textContent = currentWeekStart + ' 〜 ' + end;
+  const key = 'kizuna_week_' + currentWeekStart;
+  let cached = null; try { cached = JSON.parse(localStorage.getItem(key) || 'null'); } catch(e) {}
+  if(cached) drawWeek(cached); else document.getElementById('weekTable').innerHTML = '<tr><td style="padding:16px;color:#999">読み込み中...</td></tr>';
+  const want = currentWeekStart;
+  google.script.run.withSuccessHandler(function(w){
+    try { localStorage.setItem(key, JSON.stringify(w)); } catch(e) {}
+    if(want === currentWeekStart && document.getElementById('weekView').style.display !== 'none') drawWeek(w);
+  }).withFailureHandler(function(){
+    if(!cached) document.getElementById('weekTable').innerHTML = '<tr><td style="padding:16px;color:#B23A3A">読み込みに失敗しました。<a href="#" onclick="renderWeek();return false;">もう一度</a></td></tr>';
+  }).getWeek(currentWeekStart);
+}
+function drawWeek(w){
+  const today = localYmd(new Date());
+  let html = '<tr><th class="seatcol">席</th>' + w.days.map(d=>{
+    const wd = weekdayJp(d); const cls = (d===today?' today':'') + (wd==='土'?' sat':'') + (wd==='日'?' sun':'');
+    const note = (w.closed[d]||[]).length ? '<div class="closedmini">'+w.closed[d].map(n=>n.replace(/\s.*$/,'')).join('・')+' 定休</div>' : '';
+    return '<th class="'+cls+'">'+Number(d.slice(5,7))+'/'+Number(d.slice(8,10))+'（'+wd+'）'+note+'</th>';
+  }).join('') + '</tr>';
+  w.rows.forEach(r=>{
+    html += '<tr><td class="seatcol">'+escapeHtml(r.name)+'</td>';
+    w.days.forEach(d=>{
+      const items = (w.cells[d]||{})[r.id] || [];
+      html += '<td class="'+(d===today?'today':'')+'" data-date="'+d+'">' + items.map(it=>
+        '<div class="wk '+(it.status==='仮押さえ'?'temp':'')+' '+(it.storeId||'')+'">'
+        + '<b>'+(it.start||'時間未定')+'</b> '+escapeHtml(it.name)+(it.party?' '+it.party+'名':'')
+        + (it.request ? '<div class="wkreq">'+escapeHtml(it.request)+'</div>' : '') + '</div>').join('') + '</td>';
+    });
+    html += '</tr>';
+  });
+  const t = document.getElementById('weekTable');
+  t.innerHTML = html;
+  t.querySelectorAll('td[data-date]').forEach(td=> td.addEventListener('click', ()=> showDayView(td.dataset.date, 'week')));
 }
 document.getElementById('navToday').onclick = showTodayView;
 document.getElementById('navMonth').onclick = showMonthView;
-document.getElementById('backBtn').onclick = ()=>{ dayReturnTo==='month' ? showMonthView() : showTodayView(); };
+document.getElementById('navWeek').onclick = showWeekView;
+document.getElementById('backBtn').onclick = ()=>{ dayReturnTo==='month' ? showMonthView() : (dayReturnTo==='week' ? showWeekView() : showTodayView()); };
 document.getElementById('addFromToday').onclick = ()=> openModal(currentStoreId, [], currentDate);
 
 /* ---------- 今日・明日 ---------- */
@@ -1072,6 +1167,7 @@ updateWhoami();
   const h = (location.hash || '').slice(1);
   let m;
   if((m = h.match(/^month=(\d{4}-\d{2})$/))){ currentMonth = m[1]; showMonthView(); }
+  else if((m = h.match(/^week=(\d{4}-\d{2}-\d{2})$/)) && window.innerWidth > 640){ currentWeekStart = m[1]; showWeekView(); }
   else if((m = h.match(/^day=(\d{4}-\d{2}-\d{2})(?:&from=(\w+))?$/))){ showDayView(m[1], m[2] || 'today'); }
   else { showTodayView(); }
   // 月表示を先に読み込んでおく（押したときにすぐ出す）

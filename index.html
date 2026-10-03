@@ -205,7 +205,7 @@ a.detailLink{font-size:11px;color:#00707A;text-decoration:underline;cursor:point
 </header>
 <main>
   <div class="topnav">
-    <div class="tab" id="navToday">今日・明日</div>
+    <div class="tab" id="navToday">今日</div>
     <div class="tab" id="navMonth">月表示</div>
   </div>
   <div class="whoami" id="whoamiBar" style="display:none">
@@ -222,7 +222,7 @@ a.detailLink{font-size:11px;color:#00707A;text-decoration:underline;cursor:point
       <table class="today"><thead><tr><th>操作</th><th>時刻</th><th>店舗/個室</th><th>人数</th><th>お名前</th><th>要望</th><th>状態</th></tr></thead>
         <tbody id="todayBody"></tbody></table>
     </div>
-    <div class="daycard">
+    <div class="daycard" style="display:none"><!-- 明日は出さない（2026-10-03 橋沢さん：今日だけでよい） -->
       <div class="dtitle" id="tomorrowTitle">明日</div>
       <div class="tempNote" id="tomorrowTempNote"></div>
       <table class="today"><thead><tr><th>操作</th><th>時刻</th><th>店舗/個室</th><th>人数</th><th>お名前</th><th>要望</th><th>状態</th></tr></thead>
@@ -389,8 +389,8 @@ const HOUR_OPTIONS = [17,18,19,20,21,22]; // 17:00〜22:45（23時以降は選�
 const MINUTE_OPTIONS = ['00','15','30','45'];
 
 let currentStoreId = STORES[0].id;
-let currentDate = new Date().toISOString().slice(0,10);
-let currentMonth = new Date().toISOString().slice(0,7);
+let currentDate = localYmd(new Date());
+let currentMonth = localYmd(new Date()).slice(0,7);
 let currentResources = [];
 let dayReturnTo = 'today';
 let currentDayInfo = null;
@@ -454,7 +454,9 @@ function submitMiniPin(){
 }
 
 /* ---------- ナビゲーション ---------- */
+function rememberView(h){ try{ history.replaceState(null, '', '#' + h); }catch(e){} }
 function showTodayView(){
+  rememberView('today');
   setActiveNav('today');
   document.getElementById('todayView').style.display = 'block';
   document.getElementById('monthView').style.display = 'none';
@@ -462,6 +464,7 @@ function showTodayView(){
   loadTodayTomorrow();
 }
 function showMonthView(){
+  rememberView('month=' + currentMonth);
   setActiveNav('month');
   document.getElementById('todayView').style.display = 'none';
   document.getElementById('monthView').style.display = 'block';
@@ -471,6 +474,7 @@ function showMonthView(){
 function showDayView(dateStr, returnTo){
   currentDate = dateStr;
   dayReturnTo = returnTo || 'today';
+  rememberView('day=' + dateStr + '&from=' + dayReturnTo);
   setActiveNav(null);
   document.getElementById('todayView').style.display = 'none';
   document.getElementById('monthView').style.display = 'none';
@@ -566,22 +570,46 @@ function shiftMonth(delta){
 document.getElementById('prevMonthBtn').onclick = ()=> shiftMonth(-1);
 document.getElementById('nextMonthBtn').onclick = ()=> shiftMonth(1);
 
-function renderMonth(){
-  document.getElementById('monthLabel').textContent = currentMonth.replace('-', '年') + '月';
-  document.getElementById('calTable').innerHTML = '<tr><td style="padding:16px;text-align:center;color:#999">読み込み中...</td></tr>';
+function localYmd(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+/* 月表示の一時置き場（このスマホの中だけ）。開いた月はすぐ出して、裏で最新に入れ替える */
+const MONTH_MEM = {};
+function monthCacheGet(ym){
+  if(MONTH_MEM[ym]) return MONTH_MEM[ym];
+  const boot = (typeof window.__BOOT === 'object' && window.__BOOT) ? window.__BOOT : null;
+  if(boot && boot.monthSummary && boot.monthYm === ym) return boot.monthSummary;
+  try { const v = JSON.parse(localStorage.getItem('kizuna_month_' + ym) || 'null'); if(v) return v; } catch(e) {}
+  return null;
+}
+function monthCachePut(ym, summary){
+  MONTH_MEM[ym] = summary;
+  try { localStorage.setItem('kizuna_month_' + ym, JSON.stringify(summary)); } catch(e) {}
+}
+function fetchMonth(ym, draw){
   google.script.run.withSuccessHandler(function(summary){
-    drawCalendar(summary);
-    drawMonthTotals(summary);
+    monthCachePut(ym, summary);
+    if(draw && ym === currentMonth && document.getElementById('monthView').style.display !== 'none'){
+      drawCalendar(summary); drawMonthTotals(summary);
+    }
   }).withFailureHandler(function(err){
-    document.getElementById('calTable').innerHTML = '<tr><td style="padding:16px;color:#B23A3A">読み込みに失敗しました</td></tr>';
-  }).getMonthSummary(currentMonth);
+    if(draw && ym === currentMonth && !monthCacheGet(ym)){
+      document.getElementById('calTable').innerHTML = '<tr><td style="padding:16px;color:#B23A3A">読み込みに失敗しました。<a href="#" onclick="renderMonth();return false;">もう一度</a></td></tr>';
+    }
+  }).getMonthSummary(ym);
+}
+function renderMonth(){
+  rememberView('month=' + currentMonth);
+  document.getElementById('monthLabel').textContent = currentMonth.replace('-', '年') + '月';
+  const cached = monthCacheGet(currentMonth);
+  if(cached){ drawCalendar(cached); drawMonthTotals(cached); }
+  else { document.getElementById('calTable').innerHTML = '<tr><td style="padding:16px;text-align:center;color:#999">読み込み中...</td></tr>'; }
+  fetchMonth(currentMonth, true);
 }
 function drawCalendar(summary){
   const [y,m] = currentMonth.split('-').map(Number);
   const first = new Date(y, m-1, 1);
   const startWeekday = first.getDay();
   const daysInMonth = new Date(y, m, 0).getDate();
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = localYmd(new Date());
 
   let html = '<tr>' + WEEKDAY_JP.map(w=>'<th>'+w+'</th>').join('') + '</tr>';
   let cellsHtml = '';
@@ -1040,7 +1068,15 @@ document.getElementById('saveBtn').onclick = ()=>{
   document.getElementById('f_minute').innerHTML = '<option value="">分</option>' + minuteOptionsHtml('');
 })();
 updateWhoami();
-showTodayView();
+(function restoreView(){
+  const h = (location.hash || '').slice(1);
+  let m;
+  if((m = h.match(/^month=(\d{4}-\d{2})$/))){ currentMonth = m[1]; showMonthView(); }
+  else if((m = h.match(/^day=(\d{4}-\d{2}-\d{2})(?:&from=(\w+))?$/))){ showDayView(m[1], m[2] || 'today'); }
+  else { showTodayView(); }
+  // 月表示を先に読み込んでおく（押したときにすぐ出す）
+  setTimeout(()=>{ if(!monthCacheGet(currentMonth)) fetchMonth(currentMonth, false); }, 1500);
+})();
 </script>
 <script>
 (function(){

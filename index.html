@@ -299,12 +299,21 @@ a.detailLink{font-size:11px;color:#00707A;text-decoration:underline;cursor:point
 <script>
 window.__EXEC_URL = 'https://script.google.com/macros/s/AKfycbyyRaofvag2WS2mjV1M2vP3A7su3Jz-zve9TAv7ADi4gnZ4jPiSIHccO4lXMWmhfZ73/exec';
 (function(){
-  function call(fn, args, ok, ng){
-    fetch(window.__EXEC_URL, { method:'POST', credentials:'omit', redirect:'follow',
+  // 読み取りは通信が切れたら自動で2回までやり直す（入力・確定・キャンセルは二重にならないよう1回だけ）
+  var WRITE = {createReservation:1, confirmReservation:1, cancelReservation:1, updateReservationDetails:1};
+  function call(fn, args, ok, ng, tries){
+    tries = tries || 0;
+    var ctl = ('AbortController' in window) ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function(){ ctl.abort(); }, 25000) : null;
+    fetch(window.__EXEC_URL, { method:'POST', credentials:'omit', redirect:'follow', signal: ctl ? ctl.signal : undefined,
       headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({fn:fn, args:args}) })
-      .then(function(r){ return r.json(); })
-      .then(function(j){ if(j.ok){ ok && ok(j.result); } else { ng && ng(new Error(j.error)); } })
-      .catch(function(e){ ng && ng(new Error('通信に失敗しました。電波を確認してもう一度お試しください。')); });
+      .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(j){ if(timer) clearTimeout(timer); if(j.ok){ ok && ok(j.result); } else { ng && ng(new Error(j.error)); } })
+      .catch(function(e){
+        if(timer) clearTimeout(timer);
+        if(!WRITE[fn] && tries < 2){ setTimeout(function(){ call(fn, args, ok, ng, tries + 1); }, 800 * (tries + 1)); return; }
+        ng && ng(new Error('通信に失敗しました。電波を確認してもう一度お試しください。'));
+      });
   }
   function runner(ok, ng){
     return new Proxy({}, { get: function(_, name){
@@ -430,9 +439,21 @@ document.getElementById('addFromToday').onclick = ()=> openModal(currentStoreId,
 
 /* ---------- 今日・明日 ---------- */
 function loadTodayTomorrow(){
-  document.getElementById('todayBody').innerHTML = '<tr><td colspan="6" class="empty-msg">読み込み中...</td></tr>';
-  document.getElementById('tomorrowBody').innerHTML = '';
-  google.script.run.withSuccessHandler(function(res){
+  // 最初の1回は、起動時に一緒に受け取った分をすぐ出す（外の画面のとき・通信を1往復減らす）
+  const boot = (typeof window.__BOOT === 'object' && window.__BOOT) ? window.__BOOT : null;
+  let shown = false;
+  if(boot && boot.todayTomorrow){ renderTodayTomorrow(boot.todayTomorrow); boot.todayTomorrow = null; shown = true; if(!boot.stale) return; }
+  if(!shown){
+    document.getElementById('todayBody').innerHTML = '<tr><td colspan="7" class="empty-msg">読み込み中...</td></tr>';
+    document.getElementById('tomorrowBody').innerHTML = '';
+  }
+  google.script.run.withSuccessHandler(function(res){ renderTodayTomorrow(res); }).withFailureHandler(function(err){
+    if(shown){ return; } // 前回の内容を出しているときは、そのまま残す
+    document.getElementById('todayBody').innerHTML = '<tr><td colspan="7" class="empty-msg">読み込みに失敗しました。<a href="#" onclick="loadTodayTomorrow();return false;">もう一度読み込む</a></td></tr>';
+  }).getTodayTomorrow();
+}
+function renderTodayTomorrow(res){
+  {
     document.getElementById('todayTitle').textContent = '本日　' + fmtJP(res.today.date);
     document.getElementById('tomorrowTitle').textContent = '明日　' + fmtJP(res.tomorrow.date);
     document.getElementById('todayTitle').onclick = ()=> showDayView(res.today.date, 'today');
@@ -441,9 +462,7 @@ function loadTodayTomorrow(){
     document.getElementById('tomorrowTempNote').textContent = res.tomorrow.tempCount ? ('⚠ 内容が決まっていない「仮押さえ」が '+res.tomorrow.tempCount+' 件あります') : '';
     renderTodayTable('todayBody', res.today.items);
     renderTodayTable('tomorrowBody', res.tomorrow.items);
-  }).withFailureHandler(function(err){
-    document.getElementById('todayBody').innerHTML = '<tr><td colspan="6" class="empty-msg">読み込みに失敗しました</td></tr>';
-  }).getTodayTomorrow();
+  }
 }
 function fmtJP(dateStr){ return dateStr + '(' + weekdayJp(dateStr) + ')'; }
 function renderTodayTable(tbodyId, items){
@@ -969,14 +988,29 @@ updateWhoami();
 showTodayView();
 </script>
 <script>
-google.script.run.withSuccessHandler(function(boot){
-  window.__BOOT = boot;
-  var s = document.createElement('script');
-  s.text = document.getElementById('mainScript').textContent;
-  document.body.appendChild(s);
-}).withFailureHandler(function(e){
-  document.body.insertAdjacentHTML('afterbegin', '<div style="padding:16px;color:#B23A3A">読み込みに失敗しました。ページを開き直してください。（' + e.message + '）</div>');
-}).bootstrap();
+(function(){
+  var started = false;
+  function start(boot){
+    if(started) return; started = true;
+    window.__BOOT = boot;
+    var s = document.createElement('script');
+    s.text = document.getElementById('mainScript').textContent;
+    document.body.appendChild(s);
+  }
+  // 前に開いたことがあるスマホは、前回の内容ですぐ画面を出し、裏で最新を取りに行く
+  var cached = null;
+  try { cached = JSON.parse(localStorage.getItem('kizuna_boot') || 'null'); } catch(e) {}
+  if(cached && cached.stores){ cached.stale = true; start(cached); }
+  google.script.run.withSuccessHandler(function(boot){
+    try { localStorage.setItem('kizuna_boot', JSON.stringify(boot)); } catch(e) {}
+    if(!started){ start(boot); }
+    else if(typeof renderTodayTomorrow === 'function' && boot.todayTomorrow
+            && document.getElementById('todayView').style.display !== 'none'){ renderTodayTomorrow(boot.todayTomorrow); }
+  }).withFailureHandler(function(e){
+    if(started) return;
+    document.body.insertAdjacentHTML('afterbegin', '<div style="padding:16px;color:#B23A3A">読み込みに失敗しました。電波を確認して<a href="" onclick="location.reload();return false;">もう一度開く</a>を押してください。</div>');
+  }).bootstrap();
+})();
 </script>
 
 </body>

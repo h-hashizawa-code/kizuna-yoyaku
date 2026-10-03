@@ -143,6 +143,58 @@ a.detailLink{font-size:11px;color:#00707A;text-decoration:underline;cursor:point
 .brand{display:flex;justify-content:flex-end;padding:24px 16px 8px}
 .brand-logo{width:190px;display:block}
 .opcell{white-space:nowrap}
+
+/* ---- 月表示の数字（2026-10-03：小さくて見づらい→大きく・色の帯） ---- */
+.pill{display:flex;align-items:baseline;gap:2px;border-radius:6px;padding:2px 4px;margin-top:3px;line-height:1.2;white-space:nowrap}
+.pill .pl{font-size:10px;font-weight:bold;margin-right:2px}
+.pill b{font-size:15px}
+.pill small{font-size:10px}
+.pill.yakiniku{background:#CFEFF1;color:#00525A}
+.pill.sushi{background:#F6E7C8;color:#6B4600}
+.pill.zero{background:#F4F4F4;color:#AAA}
+.pill.full{background:#F9D6D6;color:#9A1F1F}
+
+/* ---- スマホ表示（2026-10-03：PC用の縮小表示になっていた→カード表示） ---- */
+@media (max-width: 640px){
+  main{padding:0 10px 60px}
+  header{padding:12px 12px 6px}
+  .topnav .tab{font-size:15px;padding:12px 6px}
+  .btn.small{padding:8px 12px;font-size:14px}
+  /* 今日・明日と日ごとの一覧：1件＝1枚のカード */
+  table.today thead, table.list thead{display:none}
+  table.today, table.today tbody, table.list, table.list tbody{display:block;width:100%}
+  table.today tr, table.list tr:not(.detailRow){display:grid;grid-template-columns:auto 1fr auto;
+    grid-template-areas:"time name status" "room room party" "req req req" "op op detail";
+    gap:4px 10px;border:1px solid #E3E3E3;border-radius:12px;padding:12px;margin-bottom:10px;background:#fff}
+  table.today td, table.list td{border:none;padding:0;font-size:14px}
+  table.today td:nth-child(1), table.list td:nth-child(1){grid-area:op;margin-top:4px}
+  table.today td:nth-child(2), table.list td:nth-child(2){grid-area:time;font-size:20px;font-weight:bold;color:#00525A}
+  table.today td:nth-child(3), table.list td:nth-child(3){grid-area:room;color:#555}
+  table.today td:nth-child(4), table.list td:nth-child(4){grid-area:party;font-weight:bold;align-self:center}
+  table.today td:nth-child(4):not(:empty)::after, table.list td:nth-child(4):not(:empty)::after{content:"名";font-weight:normal;font-size:12px}
+  table.today td:nth-child(5), table.list td:nth-child(5){grid-area:name;font-size:17px;font-weight:bold;align-self:center}
+  table.today td:nth-child(6){grid-area:req;color:#666;font-size:13px}
+  table.today td:nth-child(7), table.list td:nth-child(6){grid-area:status;align-self:center}
+  table.list td:nth-child(7){grid-area:req;color:#666;font-size:13px}
+  table.list td:nth-child(8){grid-area:detail;align-self:end;text-align:right}
+  table.today td.empty-msg, table.list tr td[colspan]{grid-column:1/-1;font-size:14px}
+  table.today tr:has(td[colspan]), table.list tr:has(td[colspan]){display:block;border:none;padding:4px 0}
+  table.list tr.detailRow{display:block;margin:-6px 0 10px}
+  table.list tr.detailRow td{display:block;border-radius:0 0 12px 12px}
+  .daycard .dtitle{font-size:17px}
+  .storechip{font-size:12px;padding:2px 8px}
+  a.detailLink{font-size:14px}
+  .editGrid{grid-template-columns:1fr}
+  .editGrid input,.editGrid select{font-size:15px;padding:8px}
+  /* 月表示 */
+  table.cal td{height:84px;padding:3px 2px}
+  .daynum{font-size:13px}
+  .pill{padding:2px 3px}
+  .pill b{font-size:16px}
+  .pill small{font-size:9px}
+  .storeLegend{font-size:13px}
+  .monthTotals{font-size:14px}
+}
 </style>
 </head>
 <body>
@@ -186,8 +238,9 @@ a.detailLink{font-size:11px;color:#00707A;text-decoration:underline;cursor:point
       <button class="btn outline small" id="nextMonthBtn">翌月 ▶</button>
     </div>
     <div class="storeLegend">
-      <span><b>焼肉</b> = 個室9室のうち使用中の室数</span>
-      <span><b>すし</b> = その日の合計人数（複数回転あり）</span>
+      <span><span class="pill yakiniku" style="display:inline-flex"><span class="pl">肉</span><b>3</b><small>/9室</small></span> 焼肉：9室のうち使っている部屋の数（すしの個室利用も含む）</span>
+      <span><span class="pill sushi" style="display:inline-flex"><span class="pl">寿</span><b>12</b><small>名</small></span> すし：その日の予約人数の合計</span>
+      <span><span class="pill full" style="display:inline-flex"><b>満室</b></span> 個室がすべて埋まっている日</span>
     </div>
     <table class="cal" id="calTable"></table>
     <div class="monthTotals" id="monthTotals"></div>
@@ -542,11 +595,13 @@ function drawCalendar(summary){
       const label = s.id==='yakiniku' ? '焼肉' : 'すし';
       if(!si){ inner += '<div class="dayline">'+label+' -</div>'; return; }
       if(si.roomsTotal !== undefined){
-        inner += '<div class="dayline yakiniku">'+label+' '+si.roomsUsed+'/'+si.roomsTotal+'室</div>';
+        const full = si.roomsTotal && si.roomsUsed >= si.roomsTotal;
+        const cls = 'pill yakiniku' + (si.roomsUsed===0 ? ' zero' : '') + (full ? ' full' : '');
+        inner += '<div class="'+cls+'"><span class="pl">肉</span><b>'+(full ? '満室' : si.roomsUsed)+'</b>'+(full ? '' : '<small>/'+si.roomsTotal+'室</small>')+'</div>';
       } else {
-        inner += '<div class="dayline sushi">'+label+' '+si.partySum+'名</div>';
+        inner += '<div class="pill sushi'+(si.partySum===0 ? ' zero' : '')+'"><span class="pl">寿</span><b>'+si.partySum+'</b><small>名</small></div>';
       }
-      if(si.closedNote) inner += '<div class="dayline closednote">('+label+'定休日)</div>';
+      if(si.closedNote) inner += '<div class="dayline closednote">'+label+'定休</div>';
       if(si.tempCount) inner += '<div class="dayline tempnote">仮押さえ'+si.tempCount+'</div>';
     });
     const cls = 'day' + (dateStr===todayStr ? ' today' : '');

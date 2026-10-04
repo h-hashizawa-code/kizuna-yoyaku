@@ -649,6 +649,7 @@ document.getElementById('navMonth').onclick = showMonthView;
 document.getElementById('navWeek').onclick = showWeekView;
 document.getElementById('backBtn').onclick = ()=>{ dayReturnTo==='month' ? showMonthView() : (dayReturnTo==='week' ? showWeekView() : showTodayView()); };
 document.getElementById('addFromToday').onclick = ()=> openModal(currentStoreId, [], currentDate);
+document.getElementById('newBtn').onclick = ()=> openModal(currentStoreId, [], currentDate);
 
 /* ---------- 今日・明日 ---------- */
 function loadTodayTomorrow(){
@@ -1054,9 +1055,10 @@ function roomBusyBy(resourceId){
   return busyResv.find(r=>{
     if(r.resourceIds.indexOf(resourceId) === -1) return false;
     if(r.wholeDay || t === null) return true;
-    const s = toMinSafe(r.start), e = toMinSafe(r.end);
-    const len = (e !== null && s !== null) ? (e - s) : 120;
-    return t < e && s < t + len;
+    const s = toMinSafe(r.start);
+    if(s === null) return true;
+    let e = toMinSafe(r.end); if(e === null || e <= s) e = s + 120; // 終わり未入力は2時間とみなす
+    return t < e && s < t + (e - s);
   }) || null;
 }
 function buildRoomChips(){

@@ -832,34 +832,63 @@ function timeSlots(dayInfo){
   return slots;
 }
 
-function renderDayForStore(store){
-  document.getElementById('gridTable').innerHTML = '<tr><td style="padding:16px;text-align:center;color:#999">読み込み中...</td></tr>';
-  google.script.run.withSuccessHandler(function(dayInfo){
-    currentDayInfo = dayInfo;
-    document.getElementById('hoursNote').textContent =
-      '営業 ' + dayInfo.open + '〜' + dayInfo.close + '（ラストオーダー ' + dayInfo.lastOrder + '）';
-    const banner = document.getElementById('dayNoticeBanner');
-    if(dayInfo.closed){
-      banner.style.display = 'block';
-      banner.textContent = '⚠ ' + store.name + 'は' + weekdayJp(currentDate) + '曜日は定休日です（特別営業として入力できます）。';
-    } else {
-      banner.style.display = 'none';
-    }
-    loadDay(store, dayInfo);
-  }).withFailureHandler(function(err){
-    document.getElementById('gridTable').innerHTML = '<tr><td style="padding:16px;color:#B23A3A">読み込みに失敗しました</td></tr>';
-  }).getDayHours(store.id, currentDate);
+/* ---- 読み込みを速くする（2026-10-04 スタッフから「動きが遅い」） ----
+   日の画面は営業時間と予約を1回の往復でもらう（getDay）。もらった日のデータは画面の中で使い回し、
+   予約の入力画面（埋まっている部屋）や営業時間の注意にも同じものを使う。前に開いた日は前回の内容をすぐ出す。 */
+const dayMemo = {};    // '店|日付' → {t:受け取った時刻, data:{dayInfo, resv}}
+const hoursMemo = {};  // '店|日付' → 営業時間
+function memoKey(storeId, dateStr){ return storeId + '|' + dateStr; }
+function lsGet(k){ try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch(e) { return null; } }
+function lsSet(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} }
+function fetchDay(storeId, dateStr, ok, ng){
+  google.script.run.withSuccessHandler(function(d){
+    const k = memoKey(storeId, dateStr);
+    dayMemo[k] = {t: Date.now(), data: d};
+    hoursMemo[k] = d.dayInfo;
+    lsSet('kz_day:' + k, d);
+    ok && ok(d);
+  }).withFailureHandler(function(e){ ng && ng(e); }).getDay(storeId, dateStr);
 }
+/** 予約を書き換えたら、覚えていた日のデータは捨てる（営業時間は残す） */
+function invalidateDayMemo(){ Object.keys(dayMemo).forEach(k=> delete dayMemo[k]); }
 
-function loadDay(store, dayInfo){
-  google.script.run.withSuccessHandler(function(resv){
-    renderGrid(store, dayInfo, resv);
-    renderList(store, resv);
-    focusAfterList(store, resv);
-  }).withFailureHandler(function(err){
+function renderDayForStore(store){
+  const k = memoKey(store.id, currentDate);
+  const cached = (dayMemo[k] && dayMemo[k].data) || lsGet('kz_day:' + k);
+  if(cached && cached.dayInfo && cached.resv){ showDayData(store, cached); }
+  else document.getElementById('gridTable').innerHTML = '<tr><td style="padding:16px;text-align:center;color:#999">読み込み中...</td></tr>';
+  const forDate = currentDate, forStore = store.id;
+  fetchDay(store.id, currentDate, function(d){
+    if(currentDate !== forDate || currentStoreId !== forStore) return;
+    // 前回の内容と同じなら描き直さない（開いている詳細や入力中の内容を消さない）
+    if(cached && JSON.stringify(cached) === JSON.stringify(d)) return;
+    showDayData(store, d);
+  }, function(err){
+    if(cached) return; // 前回の内容を出しているときは、そのまま残す
     document.getElementById('gridTable').innerHTML = '<tr><td style="padding:16px;color:#B23A3A">読み込みに失敗しました: '+(err&&err.message?err.message:err)+'</td></tr>';
-  }).getAvailability(currentStoreId, currentDate, true);
+  });
 }
+function showDayData(store, d){
+  const dayInfo = d.dayInfo;
+  currentDayInfo = dayInfo;
+  document.getElementById('hoursNote').textContent =
+    '営業 ' + dayInfo.open + '〜' + dayInfo.close + '（ラストオーダー ' + dayInfo.lastOrder + '）';
+  const banner = document.getElementById('dayNoticeBanner');
+  if(dayInfo.closed){
+    banner.style.display = 'block';
+    banner.textContent = '⚠ ' + store.name + 'は' + weekdayJp(currentDate) + '曜日は定休日です（特別営業として入力できます）。';
+  } else {
+    banner.style.display = 'none';
+  }
+  // 描き直しても、開いていた詳細は開いたままにする
+  const openIds = Array.from(document.querySelectorAll('#listTable tr.detailRow'))
+    .map(dr=> dr.previousElementSibling && dr.previousElementSibling.dataset.id).filter(Boolean);
+  renderGrid(store, dayInfo, d.resv);
+  renderList(store, d.resv);
+  if(!focusResvId && openIds.length) focusResvId = openIds[0];
+  focusAfterList(store, d.resv);
+}
+function loadDay(store){ renderDayForStore(store); }
 function renderGrid(store, dayInfo, resv){
   const slots = timeSlots(dayInfo);
   const table = document.getElementById('gridTable');
@@ -1005,18 +1034,24 @@ function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt
 function escapeAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 function doConfirm(id, pin, after){
-  google.script.run.withSuccessHandler(()=>{ (after||reloadCurrentView)(); })
+  google.script.run.withSuccessHandler(()=>{ invalidateDayMemo(); (after||reloadCurrentView)(); })
     .withFailureHandler(e=>alert('失敗: '+(e&&e.message?e.message:e)))
     .confirmReservation(id, pin);
 }
 function doCancel(id, pin, after){
-  google.script.run.withSuccessHandler(()=>{ (after||reloadCurrentView)(); })
+  google.script.run.withSuccessHandler(()=>{ invalidateDayMemo(); (after||reloadCurrentView)(); })
     .withFailureHandler(e=>alert('失敗: '+(e&&e.message?e.message:e)))
     .cancelReservation(id, pin);
 }
 function reloadCurrentView(){
+  // 書き換えた直後：古い内容は出さず、新しい内容が届いたら描き直す
+  invalidateDayMemo();
   const store = STORES.find(s=>s.id===currentStoreId);
-  loadDay(store, currentDayInfo || {open:'17:00', close:'24:00', lastOrder:'23:00', closed:false});
+  const forDate = currentDate, forStore = currentStoreId;
+  fetchDay(currentStoreId, currentDate, function(d){
+    if(currentDate !== forDate || currentStoreId !== forStore) return;
+    showDayData(store, d);
+  });
 }
 
 /* ---------- 予約モーダル ---------- */
@@ -1041,12 +1076,18 @@ function loadBusy(){
   const key = currentModalStoreId + '|' + dateStr;
   if(!dateStr){ busyResv = []; busyKey = key; buildRoomChips(); return; }
   if(key === busyKey){ buildRoomChips(); return; }
-  busyKey = key; busyResv = [];
-  google.script.run.withSuccessHandler(function(resv){
+  busyKey = key; busyResv = []; busyLoadedKey = '';
+  // 日の画面でさっき受け取った同じ日のデータがあれば、それを使う（往復しない）
+  const memo = dayMemo[key];
+  if(memo && Date.now() - memo.t < 60000){
+    busyResv = memo.data.resv || []; busyLoadedKey = key; buildRoomChips(); refreshWarnings(); return;
+  }
+  fetchDay(currentModalStoreId, dateStr, function(d){
     if(busyKey !== key) return;
-    busyResv = resv || []; buildRoomChips(); refreshWarnings();
-  }).getAvailability(currentModalStoreId, dateStr, true);
+    busyResv = d.resv || []; busyLoadedKey = key; buildRoomChips(); refreshWarnings();
+  });
 }
+let busyLoadedKey = '';
 function toMinSafe(t){ const m = String(t||'').match(/^(\d{1,2}):(\d{2})/); return m ? (+m[1])*60 + (+m[2]) : null; }
 /** 個室がその日（選んだ時間）にもう埋まっているか。一晩押さえの日は1組でも入っていれば埋まり */
 function roomBusyBy(resourceId){
@@ -1206,7 +1247,7 @@ function refreshWarnings(){
 
   if(!dateStr){ if(warns.length){box.style.display='block'; box.innerHTML = warns.map(w=>'<div>'+w+'</div>').join('');} else box.style.display='none'; return; }
 
-  google.script.run.withSuccessHandler(function(info){
+  const applyInfo = function(info){
     const all = warns.slice();
     if(info.closed) all.push('⚠ この日は定休日です（特別営業として登録できます）。');
     const h = document.getElementById('f_hour').value, m = document.getElementById('f_minute').value;
@@ -1219,7 +1260,11 @@ function refreshWarnings(){
     }
     if(all.length){ box.style.display='block'; box.innerHTML = all.map(w=>'<div>'+w+'</div>').join(''); }
     else { box.style.display='none'; }
-  }).withFailureHandler(()=>{
+  };
+  // 営業時間は1度もらった日なら使い回す（人数を打つたびに問い合わせて遅くなっていた）
+  const hk = memoKey(store.id, dateStr);
+  if(hoursMemo[hk]){ applyInfo(hoursMemo[hk]); return; }
+  google.script.run.withSuccessHandler(function(info){ hoursMemo[hk] = info; applyInfo(info); }).withFailureHandler(()=>{
     if(warns.length){ box.style.display='block'; box.innerHTML = warns.map(w=>'<div>'+w+'</div>').join(''); }
     else box.style.display='none';
   }).getDayHours(store.id, dateStr);
@@ -1255,6 +1300,7 @@ document.getElementById('saveBtn').onclick = ()=>{
     };
     google.script.run.withSuccessHandler((res)=>{
       unlock();
+      invalidateDayMemo();
       setCached(pin, res.enteredBy);
       document.getElementById('overlay').classList.remove('show');
       if(document.getElementById('dayView').style.display !== 'none') reloadCurrentView();
@@ -1266,6 +1312,8 @@ document.getElementById('saveBtn').onclick = ()=>{
     }).createReservation(payload, pin);
   };
 
+  // その日の埋まり具合を受け取り済みなら、重なりは画面側で分かっている（埋まった部屋は選べない）ので確認の往復を省く
+  if(busyLoadedKey === storeId + '|' + dateStr){ doSave(); return; }
   google.script.run.withSuccessHandler(function(conflict){
     if(conflict){
       const ok = confirm('個室' + conflict.roomNumber + 'は' + (conflict.start||'終日') + 'に' + conflict.name + '様が入っています。入れますか？');

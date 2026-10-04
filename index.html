@@ -262,6 +262,13 @@ html.sp .storeLegend{font-size:13px}
 html.sp .monthTotals{font-size:14px}
 .viewswitch{text-align:center;font-size:13px;color:#888;margin:24px 0 0}
 .viewswitch a{color:#00707A}
+
+/* ---- 2026-10-04：時間未定・タップで詳細・埋まっている部屋 ---- */
+.unset{color:#B8860B;font-size:.85em;font-weight:bold}
+tr.tapRow{cursor:pointer}
+.chip.busy{background:#EDEDED;border-color:#D5D5D5;color:#9A9A9A;cursor:not-allowed;text-decoration:line-through;
+  display:inline-flex;flex-direction:column;align-items:center;line-height:1.2}
+.chip.busy small{font-size:9px;text-decoration:none;color:#888;max-width:6em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 <script>
 (function(){
@@ -563,7 +570,9 @@ function showMonthView(){
   document.getElementById('dayView').style.display = 'none';
   renderMonth();
 }
-function showDayView(dateStr, returnTo){
+let focusResvId = null;
+function showDayView(dateStr, returnTo, focusId){
+  focusResvId = focusId || null;
   currentDate = dateStr;
   dayReturnTo = returnTo || 'today';
   rememberView('day=' + dateStr + '&from=' + dayReturnTo);
@@ -664,19 +673,21 @@ function renderTodayTomorrow(res){
     document.getElementById('tomorrowTitle').onclick = ()=> showDayView(res.tomorrow.date, 'today');
     document.getElementById('todayTempNote').textContent = res.today.tempCount ? ('⚠ 内容が決まっていない「仮押さえ」が '+res.today.tempCount+' 件あります') : '';
     document.getElementById('tomorrowTempNote').textContent = res.tomorrow.tempCount ? ('⚠ 内容が決まっていない「仮押さえ」が '+res.tomorrow.tempCount+' 件あります') : '';
-    renderTodayTable('todayBody', res.today.items);
-    renderTodayTable('tomorrowBody', res.tomorrow.items);
+    renderTodayTable('todayBody', res.today.items, res.today.date);
+    renderTodayTable('tomorrowBody', res.tomorrow.items, res.tomorrow.date);
   }
 }
 function fmtJP(dateStr){ return dateStr + '(' + weekdayJp(dateStr) + ')'; }
-function renderTodayTable(tbodyId, items){
+function renderTodayTable(tbodyId, items, dateStr){
   const tbody = document.getElementById(tbodyId);
   tbody.innerHTML = '';
   if(items.length===0){ tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">予約はありません</td></tr>'; return; }
   items.forEach(it=>{
     const tr = document.createElement('tr');
     const statusClass = it.status==='確定' ? 'confirmed' : (it.status==='仮押さえ' ? 'temp' : 'cancel');
-    tr.innerHTML = '<td class="opcell"></td><td>'+(it.start||'-')+'</td>'
+    tr.className = 'tapRow';
+    tr.onclick = (e)=>{ if(e.target.closest('button')) return; showDayView(dateStr || currentDate, 'today', it.id); };
+    tr.innerHTML = '<td class="opcell"></td><td>'+(it.start||'<span class="unset">時間未定</span>')+'</td>'
       + '<td><span class="storechip '+it.storeId+'">'+(it.storeId==='yakiniku'?'焼肉':'すし')+'</span> '+escapeHtml(it.roomName)
       + (it.linked ? '<span class="linkBadge">連結:'+escapeHtml(it.roomName)+'</span>' : '') + '</td>'
       + '<td>'+(it.partySize||'-')+'</td>'
@@ -843,6 +854,7 @@ function loadDay(store, dayInfo){
   google.script.run.withSuccessHandler(function(resv){
     renderGrid(store, dayInfo, resv);
     renderList(store, resv);
+    focusAfterList(store, resv);
   }).withFailureHandler(function(err){
     document.getElementById('gridTable').innerHTML = '<tr><td style="padding:16px;color:#B23A3A">読み込みに失敗しました: '+(err&&err.message?err.message:err)+'</td></tr>';
   }).getAvailability(currentStoreId, currentDate, true);
@@ -882,6 +894,17 @@ function cellStatus(resource, slot, resv){
   if(items.length===0) return 'empty';
   return items.some(i=>i.status==='確定') ? 'confirmed' : 'temp';
 }
+function focusAfterList(store, resv){
+  if(!focusResvId) return;
+  const r = resv.find(x=>x.id===focusResvId);
+  const tr = document.querySelector('#listTable tr[data-id="'+focusResvId+'"]');
+  focusResvId = null;
+  if(r && tr){
+    const next = tr.nextElementSibling;
+    if(!(next && next.classList.contains('detailRow'))) toggleDetail(tr, r, store);
+    tr.scrollIntoView({behavior:'smooth', block:'center'});
+  } else if(r && r.storeId === undefined){ /* 別の店の予約：店タブを切り替えてもらう */ }
+}
 function renderList(store, resv){
   const tbody = document.querySelector('#listTable tbody');
   tbody.innerHTML = '';
@@ -896,14 +919,17 @@ function renderList(store, resv){
     const tr = document.createElement('tr');
     const statusClass = r.status==='確定' ? 'confirmed' : (r.status==='仮押さえ' ? 'temp' : 'cancel');
     tr.innerHTML = '<td class="opcell"></td>'
-      + '<td>'+(r.start||'-')+'</td>'
+      + '<td>'+(r.startRaw||'<span class="unset">時間未定</span>')+'</td>'
       + '<td>'+roomLabel+'</td>'
       + '<td>'+(r.partySize||'-')+'</td>'
       + '<td>'+escapeHtml(displayName(r))+(r.otherStoreName ? '<span class="linkBadge">'+escapeHtml(r.otherStoreName)+'の予約</span>' : '')+'</td>'
       + '<td><span class="status-tag '+statusClass+'">'+r.status+'</span></td>'
       + '<td>'+escapeHtml(r.request||'')+'</td>'
       + '<td><a class="detailLink">詳細</a></td>';
-    tr.querySelector('.detailLink').onclick = ()=> toggleDetail(tr, r, store);
+    tr.querySelector('.detailLink').onclick = (e)=>{ e.stopPropagation(); toggleDetail(tr, r, store); };
+    tr.className = 'tapRow';
+    tr.dataset.id = r.id;
+    tr.onclick = (e)=>{ if(e.target.closest('button,a,input,select')) return; toggleDetail(tr, r, store); };
     addOpButtons(tr.firstElementChild, r.id, r.status, displayName(r), reloadCurrentView);
     tbody.appendChild(tr);
   });
@@ -922,7 +948,7 @@ function toggleDetail(tr, r, store){
     const sel = r.resourceIds.indexOf(x.id)!==-1;
     return '<div class="chip roomChip'+(sel?' selected':'')+'" data-id="'+x.id+'">'+seatLabel(x)+'</div>';
   }).join('');
-  const [rh, rm] = (r.start||'').split(':');
+  const [rh, rm] = (r.startRaw||'').split(':');
   dr.innerHTML = '<td colspan="8">'
     + '会員番号：' + escapeHtml(r.memberNumber || '（未登録）') + '　／　'
     + '金額：' + escapeHtml(r.amount || '（未登録）') + '　／　経路：' + escapeHtml(r.route||'（未登録）')
@@ -1001,11 +1027,38 @@ function buildStoreChips(){
     c.className = 'chip' + (s.id===currentModalStoreId ? ' selected' : '');
     c.textContent = s.name;
     c.dataset.value = s.id;
-    c.onclick = ()=>{ currentModalStoreId = s.id; buildStoreChips(); buildRoomChips(); refreshWarnings(); };
+    c.onclick = ()=>{ currentModalStoreId = s.id; buildStoreChips(); loadBusy(); refreshWarnings(); };
     wrap.appendChild(c);
   });
 }
 let currentModalStoreId = STORES[0].id;
+/* その日の部屋の埋まり具合（予約入力の画面用） */
+let busyResv = [];
+let busyKey = '';
+function loadBusy(){
+  const dateStr = document.getElementById('f_date').value;
+  const key = currentModalStoreId + '|' + dateStr;
+  if(!dateStr){ busyResv = []; busyKey = key; buildRoomChips(); return; }
+  if(key === busyKey){ buildRoomChips(); return; }
+  busyKey = key; busyResv = [];
+  google.script.run.withSuccessHandler(function(resv){
+    if(busyKey !== key) return;
+    busyResv = resv || []; buildRoomChips(); refreshWarnings();
+  }).getAvailability(currentModalStoreId, dateStr, true);
+}
+function toMinSafe(t){ const m = String(t||'').match(/^(\d{1,2}):(\d{2})/); return m ? (+m[1])*60 + (+m[2]) : null; }
+/** 個室がその日（選んだ時間）にもう埋まっているか。一晩押さえの日は1組でも入っていれば埋まり */
+function roomBusyBy(resourceId){
+  const h = document.getElementById('f_hour').value, m = document.getElementById('f_minute').value;
+  const t = (h && m) ? toMinSafe(h+':'+m) : null;
+  return busyResv.find(r=>{
+    if(r.resourceIds.indexOf(resourceId) === -1) return false;
+    if(r.wholeDay || t === null) return true;
+    const s = toMinSafe(r.start), e = toMinSafe(r.end);
+    const len = (e !== null && s !== null) ? (e - s) : 120;
+    return t < e && s < t + len;
+  }) || null;
+}
 function buildRoomChips(){
   const store = storeOf(currentModalStoreId);
   const wrap = document.getElementById('roomChips');
@@ -1024,6 +1077,16 @@ function buildRoomChips(){
   labelEl.innerHTML = (onlyRooms ? '個室ナンバー・複数選べます' : '席（カウンター・個室）') + ' <b style="color:#B23A3A">必須</b>';
   store.resources.forEach(r=>{
     const c = document.createElement('div');
+    const busy = (r.type === '個室') ? roomBusyBy(r.id) : null;
+    if(busy){
+      // 埋まっている部屋は選べない。名前を小さく出して、どこが埋まっているか一目で分かるように
+      const i = selectedRoomIds.indexOf(r.id); if(i !== -1) selectedRoomIds.splice(i, 1);
+      c.className = 'chip roomChip busy';
+      c.innerHTML = seatLabel(r) + '<small>' + escapeHtml((busy.startRaw || '') + ' ' + (busy.name || '仮押さえ')).trim() + '</small>';
+      c.title = '使用中';
+      wrap.appendChild(c);
+      return;
+    }
     c.className = 'chip roomChip' + (selectedRoomIds.indexOf(r.id)!==-1 ? ' selected' : '');
     c.textContent = seatLabel(r);
     c.dataset.id = r.id;
@@ -1064,6 +1127,7 @@ function openModal(storeId, resourceIds, dateStr, time){
   buildStoreChips();
   buildRoomChips();
   document.getElementById('f_date').value = dateStr || currentDate;
+  busyKey = ''; busyResv = []; setTimeout(loadBusy, 0);
   if(time){
     const [h,m] = time.split(':');
     document.getElementById('f_hour').value = h;
@@ -1096,8 +1160,9 @@ function openModal(storeId, resourceIds, dateStr, time){
   document.getElementById(id).addEventListener('input', refreshWarnings);
   document.getElementById(id).addEventListener('change', refreshWarnings);
 });
-document.getElementById('f_hour').addEventListener('change', refreshWarnings);
-document.getElementById('f_minute').addEventListener('change', refreshWarnings);
+document.getElementById('f_hour').addEventListener('change', ()=>{ buildRoomChips(); refreshWarnings(); });
+document.getElementById('f_minute').addEventListener('change', ()=>{ buildRoomChips(); refreshWarnings(); });
+document.getElementById('f_date').addEventListener('change', loadBusy);
 
 /** 選んだ個室ナンバーが「繋げて使える並び」かどうかを判定する（隣接=番号が連続）。 */
 /** 個室がある店か（焼肉＝個室のみ、すし＝カウンター＋個室）。 */

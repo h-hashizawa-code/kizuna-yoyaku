@@ -489,6 +489,7 @@ const MINUTE_OPTIONS = ['00','15','30','45'];
 
 let currentStoreId = STORES[0].id;
 let currentDate = localYmd(new Date());
+let appDay = currentDate; // 画面が「今日」として扱っている日付（日をまたいだかの判定用）
 let currentMonth = localYmd(new Date()).slice(0,7);
 let currentResources = [];
 let dayReturnTo = 'today';
@@ -555,6 +556,9 @@ function submitMiniPin(){
 /* ---------- ナビゲーション ---------- */
 function rememberView(h){ try{ history.replaceState(null, '', '#' + h); }catch(e){} }
 function showTodayView(){
+  // 日付が変わっていたら「今日」を今日に合わせる（開きっぱなしで日をまたいでも昨日のままにしない・2026-10-05）
+  currentDate = localYmd(new Date());
+  appDay = currentDate;
   rememberView('today');
   setActiveNav('today');
   document.getElementById('todayView').style.display = 'block';
@@ -656,7 +660,10 @@ function loadTodayTomorrow(){
   // 最初の1回は、起動時に一緒に受け取った分をすぐ出す（外の画面のとき・通信を1往復減らす）
   const boot = (typeof window.__BOOT === 'object' && window.__BOOT) ? window.__BOOT : null;
   let shown = false;
-  if(boot && boot.todayTomorrow){ renderTodayTomorrow(boot.todayTomorrow); boot.todayTomorrow = null; shown = true; if(!boot.stale) return; }
+  // 前回保存した内容は、同じ日のものだけ先に出す（昨日の分を「本日」として出さない）
+  const bootFresh = boot && boot.todayTomorrow && boot.todayTomorrow.today && boot.todayTomorrow.today.date === localYmd(new Date());
+  if(bootFresh){ renderTodayTomorrow(boot.todayTomorrow); boot.todayTomorrow = null; shown = true; if(!boot.stale) return; }
+  if(boot) boot.todayTomorrow = null;
   if(!shown){
     document.getElementById('todayBody').innerHTML = '<tr><td colspan="7" class="empty-msg">読み込み中...</td></tr>';
     document.getElementById('tomorrowBody').innerHTML = '';
@@ -1335,11 +1342,23 @@ updateWhoami();
   let m;
   if((m = h.match(/^month=(\d{4}-\d{2})$/))){ currentMonth = m[1]; showMonthView(); }
   else if((m = h.match(/^week=(\d{4}-\d{2}-\d{2})$/)) && window.innerWidth > 640){ currentWeekStart = m[1]; showWeekView(); }
-  else if((m = h.match(/^day=(\d{4}-\d{2}-\d{2})(?:&from=(\w+))?$/))){ showDayView(m[1], m[2] || 'today'); }
+  // 「今日」から開いた日の画面は、その日のうちだけ戻す。日付が変わっていたら今日の画面へ（昨日のまま残っていた・2026-10-05）
+  else if((m = h.match(/^day=(\d{4}-\d{2}-\d{2})(?:&from=(\w+))?$/)) && !((m[2] || 'today') === 'today' && m[1] !== localYmd(new Date()))){ showDayView(m[1], m[2] || 'today'); }
   else { showTodayView(); }
   // 月表示を先に読み込んでおく（押したときにすぐ出す）
   setTimeout(()=>{ if(!monthCacheGet(currentMonth)) fetchMonth(currentMonth, false); }, 1500);
 })();
+// スマホでアプリに戻ってきたとき、日付が変わっていたら今日の画面を出し直す
+function checkDayRollover(){
+  const now = localYmd(new Date());
+  if(now === appDay) return;
+  const todayShown = document.getElementById('todayView').style.display !== 'none';
+  const dayFromToday = document.getElementById('dayView').style.display !== 'none' && dayReturnTo === 'today';
+  if(todayShown || dayFromToday){ showTodayView(); } else { appDay = now; }
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') checkDayRollover(); });
+window.addEventListener('pageshow', checkDayRollover);
+setInterval(checkDayRollover, 60000);
 </script>
 <script>
 (function(){

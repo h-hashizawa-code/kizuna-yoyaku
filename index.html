@@ -270,10 +270,8 @@ tr.tapRow{cursor:pointer}
   display:inline-flex;flex-direction:column;align-items:center;line-height:1.2}
 .chip.busy small{font-size:9px;text-decoration:none;color:#888;max-width:6em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* ---- 2026-10-11：社長紹介の印・スマホの週表示 ---- */
-.vipBadge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:9px;background:#FFF4D6;border:1px solid #C9962B;color:#7A5200;font-size:11px;font-weight:bold;white-space:nowrap;vertical-align:middle}
-.chip.vip{border-color:#C9962B;color:#7A5200;background:#FFF8E6;font-weight:bold}
-.chip.vip.selected{background:#C9962B;color:#fff}
+/* ---- 2026-10-11：社長経由の印・スマホの週表示 ---- */
+.vipBadge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:9px;background:#fff;border:1px solid #00A9B2;color:#00707A;font-size:11px;white-space:nowrap;vertical-align:middle}
 .weeklist{margin-top:8px}
 .wlday{border:1px solid #E3EEEF;border-radius:10px;margin-bottom:10px;padding:8px 10px;background:#fff;cursor:pointer}
 .wlday.today{border-color:#00A9B2;box-shadow:0 0 0 1px #00A9B2 inset}
@@ -647,9 +645,9 @@ function renderWeek(){
 }
 /** スマホ表示か（?view=sp・スマホ端末・幅640px以下） */
 function isSpView(){ return document.documentElement.classList.contains('sp') || window.innerWidth <= 640; }
-/** 社長紹介の印（2026-10-11 橋沢さん：社長経由の紹介を一目で分かるように） */
-const ROUTE_VIP = '社長紹介';
-function routeBadge(route){ return route === ROUTE_VIP ? '<span class="vipBadge">🤝 社長紹介</span>' : ''; }
+/** 社長経由の印（2026-10-11 橋沢さん：社長経由の紹介を分かるように・色は他と同じ） */
+const ROUTE_VIP = '社長経由';
+function routeBadge(route){ return route === ROUTE_VIP ? '<span class="vipBadge">社長経由</span>' : ''; }
 /** スマホの週表示：日ごとに、その日の予約を時間順で縦に並べる */
 function drawWeekList(w){
   const today = localYmd(new Date());
@@ -1062,7 +1060,7 @@ function toggleDetail(tr, r, store){
     + '<div><label>金額</label><input type="text" class="e_amount" value="'+escapeAttr(r.amount)+'"></div>'
     + '</div>'
     + '<div style="margin-top:6px"><label style="font-size:10px;color:#888">来店のきっかけ（経路）</label><div class="chips" id="'+uid+'_route">'
-    + ROUTES.map(v=> '<div class="chip'+(v===ROUTE_VIP?' vip':'')+(v===r.route?' selected':'')+'" data-value="'+escapeAttr(v)+'">'+(v===ROUTE_VIP?'🤝 ':'')+escapeHtml(v)+'</div>').join('')
+    + ROUTES.map(v=> '<div class="chip'+(v===r.route?' selected':'')+'" data-value="'+escapeAttr(v)+'">'+escapeHtml(v)+'</div>').join('')
     + '</div></div>'
     + '<div style="margin-top:6px"><button class="btn small" id="'+uid+'_save">この内容で直す</button></div>'
     + '</td>';
@@ -1271,8 +1269,6 @@ function openModal(storeId, resourceIds, dateStr, time){
     c.onclick = ()=>{ document.getElementById('f_amount').value = c.dataset.value; };
   });
   buildChips('routeChips', ROUTES, '電話', null);
-  // 社長紹介は目立つ色・🤝付きにして、選び間違えないように
-  document.querySelectorAll('#routeChips .chip').forEach(c=>{ if(c.dataset.value === ROUTE_VIP){ c.classList.add('vip'); c.textContent = '🤝 ' + ROUTE_VIP; } });
   buildChips('statusChips', ['確定','仮押さえ'], '確定', null);
   document.getElementById('f_pin').value = getCachedPin();
   document.getElementById('modalErr').textContent = '';

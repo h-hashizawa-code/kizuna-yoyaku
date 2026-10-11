@@ -269,6 +269,23 @@ tr.tapRow{cursor:pointer}
 .chip.busy{background:#EDEDED;border-color:#D5D5D5;color:#9A9A9A;cursor:not-allowed;text-decoration:line-through;
   display:inline-flex;flex-direction:column;align-items:center;line-height:1.2}
 .chip.busy small{font-size:9px;text-decoration:none;color:#888;max-width:6em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---- 2026-10-11：社長紹介の印・スマホの週表示 ---- */
+.vipBadge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:9px;background:#FFF4D6;border:1px solid #C9962B;color:#7A5200;font-size:11px;font-weight:bold;white-space:nowrap;vertical-align:middle}
+.chip.vip{border-color:#C9962B;color:#7A5200;background:#FFF8E6;font-weight:bold}
+.chip.vip.selected{background:#C9962B;color:#fff}
+.weeklist{margin-top:8px}
+.wlday{border:1px solid #E3EEEF;border-radius:10px;margin-bottom:10px;padding:8px 10px;background:#fff;cursor:pointer}
+.wlday.today{border-color:#00A9B2;box-shadow:0 0 0 1px #00A9B2 inset}
+.wlhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.wldate{font-weight:bold;color:#00525A;font-size:15px}
+.wldate.sat{color:#2457A6} .wldate.sun{color:#B23A3A}
+.wlcount{margin-left:auto;font-size:12px;color:#666}
+.wlitem{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 0;border-top:1px solid #F0F0F0;font-size:14px}
+.wlitem.temp{background:#FFF9EC}
+.wltime{font-weight:bold;min-width:3.2em;color:#00525A}
+.wlroom{color:#333}
+.wlname{font-weight:bold;color:#222}
 </style>
 <script>
 (function(){
@@ -291,7 +308,7 @@ function switchView(v){ try{ localStorage.setItem('kizuna_view', v); }catch(e){}
   <div class="topnav">
     <div class="tab" id="navToday">今日</div>
     <div class="tab" id="navMonth">月表示</div>
-    <div class="tab pconly" id="navWeek">週表示</div>
+    <div class="tab" id="navWeek">週表示</div>
   </div>
   <div class="whoami" id="whoamiBar" style="display:none">
     <span id="whoamiText"></span>
@@ -339,9 +356,11 @@ function switchView(v){ try{ localStorage.setItem('kizuna_view', v); }catch(e){}
       <div class="label" id="weekLabel"></div>
       <button class="btn outline small" onclick="shiftWeek(7)">次の週 ▶</button>
     </div>
-    <div class="printbar"><button class="btn outline small" onclick="window.print()">印刷：この週</button>
+    <div class="printbar pconly"><button class="btn outline small" onclick="window.print()">印刷：この週</button>
       <span class="hint">マスを押すと、その日の画面を開きます</span></div>
-    <div class="weekwrap"><table class="week" id="weekTable"></table></div>
+    <div class="weekwrap" id="weekWrap"><table class="week" id="weekTable"></table></div>
+    <!-- スマホ用：7日分を日ごとの縦の一覧で出す（2026-10-11 橋沢さん：携帯でも週を見たい） -->
+    <div class="weeklist" id="weekList" style="display:none"></div>
   </div>
 
   <!-- ================= 日表示 ================= -->
@@ -595,7 +614,7 @@ function setActiveNav(which){
   document.getElementById('navMonth').classList.toggle('active', which==='month');
   document.getElementById('navWeek').classList.toggle('active', which==='week');
   if(which!=='week') document.getElementById('weekView').style.display = 'none';
-  document.body.classList.toggle('wide', which==='week'); // 週表示はPCの横幅いっぱいに
+  document.body.classList.toggle('wide', which==='week' && !isSpView()); // 週表示はPCの横幅いっぱいに
 }
 /* ---------- 週表示（PC向け：7日分を部屋ごとに並べる） ---------- */
 let currentWeekStart = localYmd(new Date());
@@ -626,7 +645,50 @@ function renderWeek(){
     if(!cached) document.getElementById('weekTable').innerHTML = '<tr><td style="padding:16px;color:#B23A3A">読み込みに失敗しました。<a href="#" onclick="renderWeek();return false;">もう一度</a></td></tr>';
   }).getWeek(currentWeekStart);
 }
+/** スマホ表示か（?view=sp・スマホ端末・幅640px以下） */
+function isSpView(){ return document.documentElement.classList.contains('sp') || window.innerWidth <= 640; }
+/** 社長紹介の印（2026-10-11 橋沢さん：社長経由の紹介を一目で分かるように） */
+const ROUTE_VIP = '社長紹介';
+function routeBadge(route){ return route === ROUTE_VIP ? '<span class="vipBadge">🤝 社長紹介</span>' : ''; }
+/** スマホの週表示：日ごとに、その日の予約を時間順で縦に並べる */
+function drawWeekList(w){
+  const today = localYmd(new Date());
+  const roomName = {}; w.rows.forEach(r=> roomName[r.id] = r.name);
+  let html = '';
+  w.days.forEach(d=>{
+    // 部屋を繋げた予約は部屋ごとに入っているので、1件にまとめる
+    const byId = {};
+    Object.keys(w.cells[d]||{}).forEach(rid=> (w.cells[d][rid]||[]).forEach(it=>{
+      const k = it.id || (it.start + '|' + it.name);
+      if(!byId[k]) byId[k] = Object.assign({rooms: []}, it);
+      byId[k].rooms.push(roomName[rid] || rid);
+    }));
+    const items = Object.values(byId).sort((a,b)=> String(a.start||'99').localeCompare(String(b.start||'99')));
+    const people = items.reduce((s,it)=> s + (it.party||0), 0);
+    const wd = weekdayJp(d);
+    const closed = (w.closed[d]||[]).length ? '<span class="closedmini">'+w.closed[d].map(n=>n.replace(/\s.*$/,'')).join('・')+' 定休</span>' : '';
+    html += '<div class="wlday'+(d===today?' today':'')+'" data-date="'+d+'">'
+      + '<div class="wlhead"><span class="wldate'+(wd==='土'?' sat':'')+(wd==='日'?' sun':'')+'">'+Number(d.slice(5,7))+'/'+Number(d.slice(8,10))+'（'+wd+'）'+(d===today?' 今日':'')+'</span>'
+      + closed + '<span class="wlcount">'+(items.length ? items.length+'件・'+people+'名' : '予約なし')+'</span></div>'
+      + items.map(it=>
+          '<div class="wlitem '+(it.status==='仮押さえ'?'temp':'')+'">'
+          + '<span class="wltime">'+(it.start||'<span class="unset">時間未定</span>')+'</span>'
+          + '<span class="storechip '+(it.storeId||'')+'">'+(it.storeId==='yakiniku'?'焼肉':'すし')+'</span>'
+          + '<span class="wlroom">'+escapeHtml(it.rooms.join('+'))+'</span>'
+          + '<span class="wlname">'+escapeHtml(it.name)+(it.party?' '+it.party+'名':'')+'</span>'
+          + routeBadge(it.route) + (it.status==='仮押さえ' ? '<span class="status-tag temp">仮押さえ</span>' : '')
+          + '</div>').join('')
+      + '</div>';
+  });
+  const el = document.getElementById('weekList');
+  el.innerHTML = html;
+  el.querySelectorAll('.wlday').forEach(x=> x.addEventListener('click', ()=> showDayView(x.dataset.date, 'week')));
+}
 function drawWeek(w){
+  const sp = isSpView();
+  document.getElementById('weekWrap').style.display = sp ? 'none' : '';
+  document.getElementById('weekList').style.display = sp ? 'block' : 'none';
+  if(sp){ drawWeekList(w); return; }
   const today = localYmd(new Date());
   let html = '<tr><th class="seatcol">席</th>' + w.days.map(d=>{
     const wd = weekdayJp(d); const cls = (d===today?' today':'') + (wd==='土'?' sat':'') + (wd==='日'?' sun':'');
@@ -639,7 +701,7 @@ function drawWeek(w){
       const items = (w.cells[d]||{})[r.id] || [];
       html += '<td class="'+(d===today?'today':'')+'" data-date="'+d+'">' + items.map(it=>
         '<div class="wk '+(it.status==='仮押さえ'?'temp':'')+' '+(it.storeId||'')+'">'
-        + '<b>'+(it.start||'時間未定')+'</b> '+escapeHtml(it.name)+(it.party?' '+it.party+'名':'')
+        + '<b>'+(it.start||'時間未定')+'</b> '+escapeHtml(it.name)+(it.party?' '+it.party+'名':'') + routeBadge(it.route)
         + (it.request ? '<div class="wkreq">'+escapeHtml(it.request)+'</div>' : '') + '</div>').join('') + '</td>';
     });
     html += '</tr>';
@@ -699,7 +761,7 @@ function renderTodayTable(tbodyId, items, dateStr){
       + '<td><span class="storechip '+it.storeId+'">'+(it.storeId==='yakiniku'?'焼肉':'すし')+'</span> '+escapeHtml(it.roomName)
       + (it.linked ? '<span class="linkBadge">連結:'+escapeHtml(it.roomName)+'</span>' : '') + '</td>'
       + '<td>'+(it.partySize||'-')+'</td>'
-      + '<td>'+escapeHtml(displayName(it))+'</td>'
+      + '<td>'+escapeHtml(displayName(it))+routeBadge(it.route)+'</td>'
       + '<td>'+escapeHtml(it.request||'')+'</td>'
       + '<td><span class="status-tag '+statusClass+'">'+it.status+'</span></td>';
     addOpButtons(tr.firstElementChild, it.id, it.status, displayName(it), loadTodayTomorrow);
@@ -959,7 +1021,7 @@ function renderList(store, resv){
       + '<td>'+(r.startRaw||'<span class="unset">時間未定</span>')+'</td>'
       + '<td>'+roomLabel+'</td>'
       + '<td>'+(r.partySize||'-')+'</td>'
-      + '<td>'+escapeHtml(displayName(r))+(r.otherStoreName ? '<span class="linkBadge">'+escapeHtml(r.otherStoreName)+'の予約</span>' : '')+'</td>'
+      + '<td>'+escapeHtml(displayName(r))+routeBadge(r.route)+(r.otherStoreName ? '<span class="linkBadge">'+escapeHtml(r.otherStoreName)+'の予約</span>' : '')+'</td>'
       + '<td><span class="status-tag '+statusClass+'">'+r.status+'</span></td>'
       + '<td>'+escapeHtml(r.request||'')+'</td>'
       + '<td><a class="detailLink">詳細</a></td>';
@@ -999,6 +1061,9 @@ function toggleDetail(tr, r, store){
     + '<div><label>要望</label><input type="text" class="e_request" value="'+escapeAttr(r.request)+'"></div>'
     + '<div><label>金額</label><input type="text" class="e_amount" value="'+escapeAttr(r.amount)+'"></div>'
     + '</div>'
+    + '<div style="margin-top:6px"><label style="font-size:10px;color:#888">来店のきっかけ（経路）</label><div class="chips" id="'+uid+'_route">'
+    + ROUTES.map(v=> '<div class="chip'+(v===ROUTE_VIP?' vip':'')+(v===r.route?' selected':'')+'" data-value="'+escapeAttr(v)+'">'+(v===ROUTE_VIP?'🤝 ':'')+escapeHtml(v)+'</div>').join('')
+    + '</div></div>'
     + '<div style="margin-top:6px"><button class="btn small" id="'+uid+'_save">この内容で直す</button></div>'
     + '</td>';
   tr.after(dr);
@@ -1006,6 +1071,10 @@ function toggleDetail(tr, r, store){
   if(roomsWrap){
     roomsWrap.querySelectorAll('.chip').forEach(c=>{ c.onclick = ()=> c.classList.toggle('selected'); });
   }
+  const routeWrap = dr.querySelector('#'+uid+'_route');
+  routeWrap.querySelectorAll('.chip').forEach(c=>{ c.onclick = ()=>{
+    routeWrap.querySelectorAll('.chip').forEach(x=> x.classList.remove('selected')); c.classList.add('selected');
+  }; });
   const wrap = dr.querySelector('#'+uid);
   document.getElementById(uid+'_save').onclick = ()=>{
     const h = wrap.querySelector('.e_hour').value, m = wrap.querySelector('.e_minute').value;
@@ -1017,6 +1086,8 @@ function toggleDetail(tr, r, store){
       request: wrap.querySelector('.e_request').value,
       amount: wrap.querySelector('.e_amount').value
     };
+    const routeSel = routeWrap.querySelector('.chip.selected');
+    if(routeSel) fields.route = routeSel.dataset.value;
     if(roomsWrap){
       const ids = Array.from(roomsWrap.querySelectorAll('.chip.selected')).map(c=>c.dataset.id);
       if(ids.length>0) fields.resourceIds = ids;
@@ -1200,6 +1271,8 @@ function openModal(storeId, resourceIds, dateStr, time){
     c.onclick = ()=>{ document.getElementById('f_amount').value = c.dataset.value; };
   });
   buildChips('routeChips', ROUTES, '電話', null);
+  // 社長紹介は目立つ色・🤝付きにして、選び間違えないように
+  document.querySelectorAll('#routeChips .chip').forEach(c=>{ if(c.dataset.value === ROUTE_VIP){ c.classList.add('vip'); c.textContent = '🤝 ' + ROUTE_VIP; } });
   buildChips('statusChips', ['確定','仮押さえ'], '確定', null);
   document.getElementById('f_pin').value = getCachedPin();
   document.getElementById('modalErr').textContent = '';
@@ -1341,7 +1414,7 @@ updateWhoami();
   const h = (location.hash || '').slice(1);
   let m;
   if((m = h.match(/^month=(\d{4}-\d{2})$/))){ currentMonth = m[1]; showMonthView(); }
-  else if((m = h.match(/^week=(\d{4}-\d{2}-\d{2})$/)) && window.innerWidth > 640){ currentWeekStart = m[1]; showWeekView(); }
+  else if((m = h.match(/^week=(\d{4}-\d{2}-\d{2})$/))){ currentWeekStart = m[1]; showWeekView(); }
   // 「今日」から開いた日の画面は、その日のうちだけ戻す。日付が変わっていたら今日の画面へ（昨日のまま残っていた・2026-10-05）
   else if((m = h.match(/^day=(\d{4}-\d{2}-\d{2})(?:&from=(\w+))?$/)) && !((m[2] || 'today') === 'today' && m[1] !== localYmd(new Date()))){ showDayView(m[1], m[2] || 'today'); }
   else { showTodayView(); }

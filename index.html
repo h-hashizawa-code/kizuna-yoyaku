@@ -86,6 +86,11 @@ table.grid td.roomcol{background:#F7FBFB;text-align:left;font-weight:bold;color:
 .cell.empty{background:#fff}
 .cell.temp{background:#FFE8B8}
 .cell.confirmed{background:#CFEFF1}
+/* 部屋が空欄の予約（2026-11-12）：目立つ色で「部屋未定」の行に出す */
+table.grid tr.noroomrow td.roomcol,.noroomrow td.seatcol{color:#B23A3A;background:#FFF1E6}
+.cell.noroom{background:#FFD3B5;cursor:pointer}
+.noroomrow td{background:#FFF8F2}
+.dayline.noroomnote{color:#B23A3A;font-weight:bold}
 .gridwrap{overflow-x:auto;border:1px solid #eee;border-radius:8px}
 .noticeBanner{background:#FFF6DD;color:#8A5B00;border-radius:8px;padding:10px 12px;margin:8px 0;font-size:12px}
 
@@ -694,7 +699,7 @@ function drawWeek(w){
     return '<th class="'+cls+'">'+Number(d.slice(5,7))+'/'+Number(d.slice(8,10))+'（'+wd+'）'+note+'</th>';
   }).join('') + '</tr>';
   w.rows.forEach(r=>{
-    html += '<tr><td class="seatcol">'+escapeHtml(r.name)+'</td>';
+    html += '<tr'+(r.id==='__noroom'?' class="noroomrow"':'')+'><td class="seatcol">'+escapeHtml(r.name)+'</td>';
     w.days.forEach(d=>{
       const items = (w.cells[d]||{})[r.id] || [];
       html += '<td class="'+(d===today?'today':'')+'" data-date="'+d+'">' + items.map(it=>
@@ -857,6 +862,7 @@ function drawCalendar(summary){
       }
       if(si.closedNote) inner += '<div class="dayline closednote">'+label+'定休</div>';
       if(si.tempCount) inner += '<div class="dayline tempnote">仮押さえ'+si.tempCount+'</div>';
+      if(si.noRoom) inner += '<div class="dayline noroomnote">部屋未定'+si.noRoom+'</div>';
     });
     const cls = 'day' + (dateStr===todayStr ? ' today' : '');
     cellsHtml += '<td class="'+cls+'" data-date="'+dateStr+'">'+inner+'</td>';
@@ -894,7 +900,8 @@ function toMin(hhmm){ const [h,m]=hhmm.split(':').map(Number); return h*60+m; }
 function timeSlots(dayInfo){
   const [oh,om] = dayInfo.open.split(':').map(Number);
   const [ch,cm] = dayInfo.close.split(':').map(Number);
-  const slots = []; let cur = oh*60+om; const end = ch*60+cm;
+  const slots = []; let cur = oh*60+om; let end = ch*60+cm;
+  if(end <= cur) end += 24*60;   // 閉店が0:00など日をまたぐとき（2026-11-12：時間表が空になっていた）
   while(cur < end){ const h=Math.floor(cur/60), m=cur%60; slots.push((h<10?'0':'')+h+':'+(m<10?'0':'')+m); cur+=30; }
   return slots;
 }
@@ -968,6 +975,17 @@ function renderGrid(store, dayInfo, resv){
     }
   });
   let html = '<tr><th>個室\\時刻</th>' + slots.map(s=>'<th>'+s+'</th>').join('') + '</tr>';
+  // 部屋が空欄の予約があれば、一番上に「部屋未定」の行を出す（押すとその予約を開く）
+  const noRoom = resv.filter(r=> !r.resourceIds || r.resourceIds.length===0);
+  if(noRoom.length){
+    html += '<tr class="noroomrow"><td class="roomcol">部屋未定</td>';
+    slots.forEach(slot=>{
+      const sm = toMin(slot);
+      const hit = noRoom.filter(r=>{ const s = toMin(r.start); let e = toMin(r.end); if(e <= s) e += 24*60; return sm < e && s < sm + 30; });
+      html += '<td class="'+(hit.length ? 'cell noroom' : 'cellx')+'" data-noroom="'+(hit.length ? hit[0].id : '')+'"></td>';
+    });
+    html += '</tr>';
+  }
   store.resources.forEach(r=>{
     const badge = linkBadgeByRoom[r.id] ? '<span class="linkBadge">連結:'+linkBadgeByRoom[r.id]+'</span>' : '';
     html += '<tr><td class="roomcol">'+r.name+badge+'</td>';
@@ -979,13 +997,17 @@ function renderGrid(store, dayInfo, resv){
   });
   table.innerHTML = html;
   table.querySelectorAll('td.cell').forEach(td=>{
+    if(td.dataset.noroom !== undefined){
+      td.addEventListener('click', ()=>{ if(td.dataset.noroom){ focusResvId = td.dataset.noroom; focusAfterList(store, resv); } });
+      return;
+    }
     td.addEventListener('click', ()=> openModal(currentStoreId, [td.dataset.resource], currentDate, td.dataset.time));
   });
 }
 function cellStatus(resource, slot, resv){
   const slotMin = toMin(slot);
   const items = resv.filter(r=>r.resourceIds.indexOf(resource.id)!==-1).filter(r=>{
-    const s = toMin(r.start), e = toMin(r.end);
+    const s = toMin(r.start); let e = toMin(r.end); if(e <= s) e += 24*60;
     return slotMin < e && s < slotMin + 30;
   });
   if(items.length===0) return 'empty';

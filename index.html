@@ -350,6 +350,53 @@ html.sp .floorcanvaswrap{width:100%}
 html.sp .fr-time,html.sp .fr-lk,html.sp .fc-item{display:none}
 html.sp .floorbar input[type=date]{flex:1 1 150px}
 @media print{ #floorView .floorbar, #floorView .floorLegend{display:none} }
+/* ---- 2026-11-19：「今日」の見取り図・箱の中の料理と※注意 ---- */
+.todayFloor{margin:8px 0 18px}
+.todayFloor .dtitle{font-size:16px;font-weight:bold;color:#00707A;margin-bottom:4px}
+.floorLegend .hint{color:#7A8B8D}
+.fr-bs{display:flex;flex-direction:column;gap:3px;min-height:0;overflow:hidden}
+.fr-b{border-top:1px solid rgba(0,0,0,.12);padding-top:2px;line-height:1.25}
+.fr-b:first-child{border-top:none;padding-top:0}
+.fr-bt{flex-wrap:wrap;display:flex;justify-content:space-between;align-items:baseline;gap:2px;font-size:clamp(9px,calc(var(--u)*.27),13px)}
+.fr-party.np{color:#B23A3A}
+.frMeal{font-size:clamp(9px,calc(var(--u)*.27),14px);color:#00424A;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all}
+.frMeal.none{color:#9AA9AB}
+.frNote{font-size:clamp(9px,calc(var(--u)*.27),14px);font-weight:bold;color:#B23A3A;background:#FFF1E6;border-radius:3px;padding:0 2px;margin-top:1px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-all}
+.nrMeal{flex-basis:100%;font-size:13px;color:#00424A}
+.nrMeal.none{color:#9AA9AB}
+.nrNote{flex-basis:100%;font-size:13px;font-weight:bold;color:#B23A3A}
+.fc-count small{font-size:clamp(8px,calc(var(--u)*.24),12px)}
+.fr-top{align-items:center}
+
+.roomList{display:none}
+.hintSp{display:none}
+.roomList .rlGroup{margin-bottom:10px}
+.rlRoom{font-weight:bold;color:#00525A;background:#E0F5F6;border-radius:6px;padding:3px 8px;margin-bottom:4px}
+.rlRow{border:1px solid #CFE3E5;background:#F2FBFB;border-radius:10px;padding:8px 10px;margin-bottom:6px;cursor:pointer;font-size:14px}
+.rlRow.temp{background:#FFF9EC;border-color:#F0D58A}
+.rlName{font-weight:bold;font-size:15px}
+.rlRow .nrMeal,.rlRow .nrNote,.rlRow .nrUnsure{display:block;word-break:break-all}
+.nrUnsure{flex-basis:100%;font-size:13px;color:#9AA9AB}
+.frUnsure{font-size:clamp(9px,calc(var(--u)*.26),13px);color:#9AA9AB;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all}
+.fr-multi{font-size:clamp(9px,calc(var(--u)*.27),13px);font-weight:bold;color:#fff;background:#00707A;border-radius:8px;padding:0 5px}
+.fr-star{display:none;color:#B23A3A;font-weight:bold}
+.fl.room .fr-b{cursor:pointer}
+@media (max-width: 640px){
+  .roomList{display:block;margin-top:10px}
+  .hintSp{display:inline}
+  .hintPc{display:none}
+  .ctrSide{display:none}
+  .frMeal,.frNote,.frUnsure{display:none}
+  .fr-star{display:inline}
+}
+html.sp .roomList{display:block;margin-top:10px}
+html.sp .hintSp{display:inline}
+html.sp .hintPc{display:none}
+html.sp .ctrSide{display:none}
+html.sp .frMeal,html.sp .frNote,html.sp .frUnsure{display:none}
+html.sp .fr-star{display:inline}
+@media print{ #todayView .todayFloor{display:none !important} }
+
 </style>
 <script>
 (function(){
@@ -382,6 +429,27 @@ function switchView(v){ try{ localStorage.setItem('kizuna_view', v); }catch(e){}
 
   <!-- ================= 今日・明日 ================= -->
   <div id="todayView">
+    <div class="todayFloor">
+      <div class="dtitle" id="todayFloorTitle">本日の見取り図</div>
+      <div class="floorLegend">
+        <span><span class="sw"></span>空き</span>
+        <span><span class="sw t"></span>仮押さえ</span>
+        <span><span class="sw c"></span>予約あり</span>
+        <span><span class="sw k"></span>連結</span>
+        <span class="hint hintPc">箱＝開始時刻・人数・お名前／料理／<b style="color:#B23A3A">※注意</b>　押すと詳細が開きます</span><span class="hint hintSp">箱＝時刻・人数・お名前（<b style="color:#B23A3A">※</b>＝注意あり）。料理と注意は下の一覧</span>
+      </div>
+      <div class="floornote" id="todayFloorNote"></div>
+      <div class="floorlayout">
+        <div class="floorcanvaswrap"><div class="floorcanvas" id="todayFloorCanvas"></div><div class="roomList" id="todayRoomList"></div></div>
+        <div class="floorside">
+          <h2 class="section">部屋未定の予約</h2>
+          <div class="nrHint">押すと予約の画面が開き、部屋を決められます</div>
+          <div id="todayNoRoom"></div>
+          <div class="ctrSide"><h2 class="section">カウンターの予約</h2>
+          <div id="todayCounterList"></div></div>
+        </div>
+      </div>
+    </div>
     <div style="margin:10px 0"><button class="btn wide" id="addFromToday">＋ 予約を追加</button></div>
     <div class="pconly printbar"><button class="btn outline small" onclick="window.print()">印刷：今日の予約</button></div>
     <div class="daycard">
@@ -445,14 +513,14 @@ function switchView(v){ try{ localStorage.setItem('kizuna_view', v); }catch(e){}
     </div>
     <div class="floornote" id="floorNote"></div>
     <div class="floorlayout">
-      <div class="floorcanvaswrap"><div class="floorcanvas" id="floorCanvas"></div></div>
+      <div class="floorcanvaswrap"><div class="floorcanvas" id="floorCanvas"></div><div class="roomList" id="floorRoomList"></div></div>
       <div class="floorside">
         <h2 class="section">部屋未定の予約</h2>
         <div class="nrHint">押すと予約の画面が開き、部屋を決められます</div>
         <div id="floorNoRoom"></div>
-        <h2 class="section">カウンターの予約（この日）</h2>
+        <div class="ctrSide"><h2 class="section">カウンターの予約（この日）</h2>
         <div class="nrHint">「いま」の印は、選んだ時刻に席を使っている予約です</div>
-        <div id="floorCounterList"></div>
+        <div id="floorCounterList"></div></div>
       </div>
     </div>
   </div>
@@ -710,27 +778,93 @@ function setActiveNav(which){
   document.getElementById('navFloor').classList.toggle('active', which==='floor');
   if(which!=='week') document.getElementById('weekView').style.display = 'none';
   if(which!=='floor') document.getElementById('floorView').style.display = 'none';
-  document.body.classList.toggle('wide', (which==='week' || which==='floor') && !isSpView()); // 週・見取り図はPCの横幅いっぱいに
+  document.body.classList.toggle('wide', (which==='week' || which==='floor' || which==='today') && !isSpView()); // 週・見取り図はPCの横幅いっぱいに
 }
 
-/* ---------- 見取り図（2026-11-18） ----------
-   壁と入口が上。左上にL字のすしカウンター、壁ぞいに個室10・9・8・7・6、その手前に3・4・5、カウンターの下に2。
+/* ---------- 見取り図（2026-11-18／11-19：「今日」の画面にも出す） ----------
+   壁と入口が上。左上にL字のすしカウンター、壁ぞいに個室10・9・8・7・6、その下の列に 2・3・4・5。
    座標は「1マス＝1」の単位。設定_資源シートに 図X・図Y（任意で 図幅・図高）があればそれを使い、無ければ下の既定を使う。
-   埋まり判定は個室入力・日表示と同じ考え方（個室は終日1組＝その日に1組でも入っていれば埋まり・時間未定も埋まり扱い／
-   2時間制の期間は開始〜終了／カウンターは開始から滞在時間の間） */
+   見取り図タブ＝選んだ時刻に席を使っている予約を出す／「今日」＝1晩1組なので時刻で切り替えず、その日の予約を全部出す。
+   箱の中身：開始時刻・人数・お名前／料理（要望欄の料理の語）／※注意（要望欄のお祝い・アレルギー等の語）。 */
 const FLOOR_W = 15.4, FLOOR_H = 6.4, FLOOR_RW = 2.0, FLOOR_RH = 2.6;
 const FLOOR_DEFAULT = {
   '10':{x:5.2,y:.5}, '9':{x:7.2,y:.5}, '8':{x:9.2,y:.5}, '7':{x:11.2,y:.5}, '6':{x:13.2,y:.5},
   '2':{x:5.2,y:3.4}, '3':{x:7.2,y:3.4}, '4':{x:10.2,y:3.4}, '5':{x:13.2,y:3.4}
 };
 const FLOOR_LINK_COLORS = ['#7A4FD1','#E0662F','#2457A6','#B23A8F','#3F8F3F'];
-let floorDate = null, floorTime = null, floorDays = {}, floorSeq = 0, floorErr = '';
+let floorDate = null, floorTime = null;
+const FLOOR_VIEW  = { rlist:'floorRoomList', canvas:'floorCanvas',      noroom:'floorNoRoom',  clist:'floorCounterList',  note:'floorNote',      allDay:false, ret:'floor', days:{}, seq:0, err:'' };
+const FLOOR_TODAY = { rlist:'todayRoomList', canvas:'todayFloorCanvas', noroom:'todayNoRoom',  clist:'todayCounterList',  note:'todayFloorNote', allDay:true,  ret:'today', days:{}, seq:0, err:'' };
+function floorDateOf(ctx){ return ctx.allDay ? localYmd(new Date()) : floorDate; }
 function floorSlots(){ const a=[]; for(let m=17*60; m<=22*60+45; m+=15){ a.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')); } return a; }
 function floorNearestSlot(){
   const n = new Date(); let m = n.getHours()*60 + n.getMinutes();
   m = Math.round(m/15)*15;
   m = Math.max(17*60, Math.min(22*60+45, m));
   return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+}
+/** 要望欄を「料理」「※注意」「要望のまま（自信なし）」に分ける。
+    1) まず強い区切り（、，,／/ 改行 。）で塊に分ける（（）()【】「」[]の中では分けない。「・」でも分けない）
+    2) 最初の「／」の前の塊は、料理語があり、かつ注意語・アレルギー語が無いときだけ料理に固定（空白でも分けない）。そうでなければ通常の振り分け
+    3) 塊にアレルギー系の語（アレルギー・苦手・NG・抜き・不可・食べられない）があれば、空白では分けず塊まるごと※。
+       ただし「焼肉コース(えび抜き)」のように料理語＋末尾のカッコ内にアレルギー語なら、料理＝カッコの外、※＝カッコの中
+    4) アレルギー語が無い塊だけ、空白（半角・全角）でさらに分ける。料理語を含む片は料理（末尾のカッコ内に注意語があればカッコの中を※）、
+       注意語だけの片は※、どちらの語も無い片は料理にせず「要望のまま」薄字 */
+const FLOOR_MEAL_RE = /コース|焼肉|焼き肉|しゃぶ|すき焼|火鍋|鮨|寿司|すし|おまかせ|お任せ|アラカルト|単品|飲み放題|肉ケーキ|お子様ランチ|膳/;
+const FLOOR_ALLERGY_RE = /アレルギー|苦手|NG|ＮＧ|抜き|不可|食べられない/;
+const FLOOR_NOTICE_RE = /※|お祝い|祝|誕生日|バースデー|記念|ベジ|ハラール|車椅子|車いす|車イス|ベビー|お子|子供|子ども|こども|サプライズ|プレゼント|メッセージ|プレート|持ち込み|歓迎会|送別会|還暦|妊婦|お連れ|接待|デート|同窓|禁煙|遅れ|遅く|早め|メモ|注意/;
+/** カッコの外だけで区切る。firstSlashHead=true のとき、最初の「／」で終わる塊に head 印を付ける */
+function floorSplitOutside(text, delims, firstSlashHead){
+  const OPEN = '（(【「[［', CLOSE = '）)】」]］';
+  const out = []; let cur = '', depth = 0, seenSlash = false;
+  for(let i = 0; i < text.length; i++){
+    const c = text[i];
+    if(OPEN.indexOf(c) !== -1) depth++;
+    else if(CLOSE.indexOf(c) !== -1 && depth > 0) depth--;
+    if(depth === 0 && delims.indexOf(c) !== -1){
+      const head = firstSlashHead && !seenSlash && c === '／';
+      if(c === '／') seenSlash = true;
+      if(cur.trim()) out.push({ t: cur.trim(), head: head });
+      cur = ''; continue;
+    }
+    cur += c;
+  }
+  if(cur.trim()) out.push({ t: cur.trim(), head: false });
+  return out;
+}
+const FLOOR_TAIL_BRACKET_RE = /^(.*?)[（(【「\[［]([^）)】」\]］]*)[）)】」\]］]\s*$/;
+function floorSplitReq(r){
+  const text = String(r.request || '').trim();
+  const meal = [], notes = [], unsure = [];
+  const strip = s => s.replace(/^※\s*/, '');
+  floorSplitOutside(text, '、，,／/\n\r。', true).forEach(ch=>{
+    const c = ch.t;
+    if(ch.head && FLOOR_MEAL_RE.test(c) && !FLOOR_NOTICE_RE.test(c) && !FLOOR_ALLERGY_RE.test(c)){ meal.push(c); return; }
+    if(FLOOR_ALLERGY_RE.test(c)){
+      const m = c.match(FLOOR_TAIL_BRACKET_RE);
+      if(m && m[1].trim() && FLOOR_MEAL_RE.test(m[1]) && FLOOR_ALLERGY_RE.test(m[2]) && !FLOOR_ALLERGY_RE.test(m[1])){ meal.push(m[1].trim()); notes.push(m[2].trim()); }
+      else notes.push(strip(c));
+      return;
+    }
+    floorSplitOutside(c, ' 　', false).forEach(p=>{
+      const s = p.t;
+      if(FLOOR_MEAL_RE.test(s)){
+        const m = s.match(FLOOR_TAIL_BRACKET_RE);
+        if(m && m[1].trim() && FLOOR_MEAL_RE.test(m[1]) && FLOOR_NOTICE_RE.test(m[2])){ meal.push(m[1].trim()); notes.push(m[2].trim()); }
+        else meal.push(s);
+      } else if(FLOOR_NOTICE_RE.test(s)) notes.push(strip(s));
+      else unsure.push(s);
+    });
+  });
+  const amount = String(r.amount || '').trim();
+  return { meal: meal.join('・') + (amount ? (meal.length ? '／' : '') + amount : ''), notes: notes, unsure: unsure.join(' ') };
+}
+function floorDetailHtml(r, cls){
+  const d = floorSplitReq(r);
+  return (d.meal ? '<div class="'+cls+'Meal">'+escapeHtml(d.meal)+'</div>'
+               : (d.unsure ? '' : '<div class="'+cls+'Meal none">料理未定</div>'))
+       + (d.unsure ? '<div class="'+cls+'Unsure">要望：'+escapeHtml(d.unsure)+'</div>' : '')
+       + d.notes.map(n=> '<div class="'+cls+'Note">※'+escapeHtml(n)+'</div>').join('');
 }
 function showFloorView(){
   if(!floorDate){ floorDate = localYmd(new Date()); }
@@ -740,7 +874,7 @@ function showFloorView(){
   ['todayView','monthView','dayView','weekView'].forEach(id=> document.getElementById(id).style.display = 'none');
   document.getElementById('floorView').style.display = 'block';
   syncFloorBar();
-  loadFloor();
+  loadFloor(FLOOR_VIEW);
 }
 function syncFloorBar(){
   const sel = document.getElementById('floorTime');
@@ -748,31 +882,32 @@ function syncFloorBar(){
   sel.value = floorTime;
   document.getElementById('floorDate').value = floorDate;
 }
-function loadFloor(){
-  const seq = ++floorSeq, date = floorDate;
-  floorErr = ''; floorDays = {};
+function loadFloor(ctx){
+  ctx = ctx || FLOOR_VIEW;
+  const seq = ++ctx.seq, date = floorDateOf(ctx);
+  ctx.err = ''; ctx.days = {};
   STORES.forEach(s=>{
     const k = memoKey(s.id, date);
     const c = (dayMemo[k] && dayMemo[k].data) || lsGet('kz_day:' + k);
-    if(c && c.resv) floorDays[s.id] = c;
+    if(c && c.resv) ctx.days[s.id] = c;
   });
-  drawFloor();
+  drawFloor(ctx);
   STORES.forEach(s=>{
     fetchDay(s.id, date, function(d){
-      if(seq !== floorSeq) return;
-      floorDays[s.id] = d; drawFloor();
+      if(seq !== ctx.seq) return;
+      ctx.days[s.id] = d; drawFloor(ctx);
     }, function(e){
-      if(seq !== floorSeq) return;
-      floorErr = (e && e.message) ? e.message : '読み込みに失敗しました';
-      drawFloor();
+      if(seq !== ctx.seq) return;
+      ctx.err = (e && e.message) ? e.message : '読み込みに失敗しました';
+      drawFloor(ctx);
     });
   });
 }
 /** 2店ぶんの予約を1つにまとめる（個室は両店共有。予約IDで重なりを除く） */
-function floorMergedResv(){
+function floorMergedResv(ctx){
   const map = {};
   STORES.forEach(s=>{
-    const d = floorDays[s.id]; if(!d || !d.resv) return;
+    const d = ctx.days[s.id]; if(!d || !d.resv) return;
     d.resv.forEach(r=>{
       const own = !r.otherStoreName;           // 自分の店の予約として返ってきた方を正とする（終了時刻はその店の滞在時間で計算されるため）
       if(!map[r.id] || own) map[r.id] = Object.assign({}, r, { ownerStoreId: own ? s.id : ((map[r.id] && map[r.id].ownerStoreId) || null) });
@@ -780,7 +915,7 @@ function floorMergedResv(){
   });
   return Object.keys(map).map(k=> map[k]);
 }
-/** 選んだ時刻 t（分）にその予約が席を使っているか */
+/** 選んだ時刻 t（分）にその予約が席を使っているか（見取り図タブ用） */
 function floorCovers(r, t, isRoom){
   if(isRoom && (r.wholeDay || !r.startRaw)) return true;
   const s = toMinSafe(r.start); if(s === null) return true;
@@ -804,21 +939,36 @@ function floorRoomBox(x, extraIdx){
   return { x: px, y: py, w: (x.fw != null ? x.fw : (d.w || FLOOR_RW)), h: (x.fh != null ? x.fh : (d.h || FLOOR_RH)), placed: hasSheet || !!FLOOR_DEFAULT[n] };
 }
 function floorPct(v, total){ return (v/total*100).toFixed(3) + '%'; }
-function drawFloor(){
-  const canvas = document.getElementById('floorCanvas');
-  const t = toMinSafe(floorTime);
-  const resv = floorMergedResv();
-  const haveAll = STORES.every(s=> floorDays[s.id]);
+function floorByTime(a, c){ return String(a.start).localeCompare(String(c.start)); }
+function floorBlockHtml(r){
+  const hasNote = floorSplitReq(r).notes.length > 0;
+  return '<div class="fr-b" data-resv="'+escapeAttr(r.id)+'">'
+    + '<div class="fr-bt"><b>'+(r.startRaw || '時間未定')+'</b>'+(hasNote ? '<span class="fr-star">※</span>' : '')+(r.partySize ? '<span class="fr-party">'+r.partySize+'名</span>' : '<span class="fr-party np">人数未定</span>')+'</div>'
+    + '<div class="fr-name">'+escapeHtml(r.name ? r.name : '仮押さえ')+'</div>'
+    + floorDetailHtml(r, 'fr')
+    + '</div>';
+}
+function drawFloor(ctx){
+  ctx = ctx || FLOOR_VIEW;
+  const canvas = document.getElementById(ctx.canvas);
+  if(!canvas) return;
+  const date = floorDateOf(ctx);
+  const t = ctx.allDay ? null : toMinSafe(floorTime);
+  const resv = floorMergedResv(ctx);
+  const haveAll = STORES.every(s=> ctx.days[s.id]);
   const notes = [];
-  STORES.forEach(s=>{ const d = floorDays[s.id]; if(d && d.dayInfo && d.dayInfo.closed) notes.push(s.name + 'は' + weekdayJp(floorDate) + '曜日は定休日です'); });
-  if(floorErr && !haveAll) notes.push('⚠ ' + floorErr + '（日付か「いま」を押すと読み直します）');
+  STORES.forEach(s=>{ const d = ctx.days[s.id]; if(d && d.dayInfo && d.dayInfo.closed) notes.push(s.name + 'は' + weekdayJp(date) + '曜日は定休日です'); });
+  if(ctx.err && !haveAll) notes.push('⚠ ' + ctx.err + '（もう一度読み込んでください）');
   else if(!haveAll) notes.push('読み込み中…');
-  document.getElementById('floorNote').textContent = notes.join(' ／ ');
+  document.getElementById(ctx.note).textContent = notes.join(' ／ ');
 
+  const vs = isSpView() ? 1.9 : 1.5;               // 文字が入るので縦に伸ばす（スマホはさらに）
   const rooms = floorRooms();
   let extra = 0;
   const boxes = rooms.map(x=>{ const b = floorRoomBox(x, extra); if(!b.placed) extra++; return Object.assign({res:x}, b); });
-  const W = Math.max(FLOOR_W, ...boxes.map(b=> b.x + b.w + .2)), H = Math.max(FLOOR_H, ...boxes.map(b=> b.y + b.h + .2));
+  const ry = y => .5 + (y - .5) * vs;
+  const W = Math.max(FLOOR_W, ...boxes.map(b=> b.x + b.w + .2));
+  const H = Math.max(.9 + 5.5 * vs, ...boxes.map(b=> ry(b.y) + b.h * vs + .2));
   canvas.style.aspectRatio = W + ' / ' + H;
   canvas.style.setProperty('--u', (canvas.clientWidth ? canvas.clientWidth / W : 22).toFixed(2) + 'px');
 
@@ -840,7 +990,7 @@ function drawFloor(){
   // 連結の線（箱の後ろ）
   let svg = '<svg class="flink" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">';
   Object.keys(groups).forEach(id=>{
-    const pts = groups[id].map(rid=> boxById[rid]).filter(Boolean).map(b=> (b.x + b.w/2) + ',' + (b.y + b.h/2));
+    const pts = groups[id].map(rid=> boxById[rid]).filter(Boolean).map(b=> (b.x + b.w/2) + ',' + (ry(b.y) + b.h*vs/2));
     if(pts.length >= 2) svg += '<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+groupColor[id]+'" stroke-width=".22" stroke-linecap="round" stroke-linejoin="round"/>';
   });
   html += svg + '</svg>';
@@ -848,36 +998,83 @@ function drawFloor(){
   // 個室
   boxes.forEach(b=>{
     const x = b.res, n = roomNumberOf(x.id);
-    const hits = resv.filter(r=> r.resourceIds.indexOf(x.id) !== -1 && floorCovers(r, t, true))
-      .sort((a,c)=> String(a.start).localeCompare(String(c.start)));
+    let hits = resv.filter(r=> r.resourceIds.indexOf(x.id) !== -1);
+    if(!ctx.allDay) hits = hits.filter(r=> floorCovers(r, t, true));
+    hits.sort(floorByTime);
     let cls = 'empty', style = '', attr = ' data-room="'+escapeAttr(x.id)+'"';
     let inner = '<div class="fr-top"><span class="fr-num">'+escapeHtml(n)+'</span></div><div class="fr-sub">空き</div>';
     if(hits.length){
-      // 複数あるときは、選んだ時刻までに始まっているものを見せる
-      const started = hits.filter(r=> toMinSafe(r.start) !== null && toMinSafe(r.start) <= t);
-      const r = started.length ? started[started.length-1] : hits[0];
-      cls = (r.status === '確定') ? 'confirmed' : 'temp';
-      const lk = groups[r.id];
-      if(lk){ cls += ' linked'; style = 'border-color:' + groupColor[r.id] + ';'; }
-      inner = '<div class="fr-top"><span class="fr-num">'+escapeHtml(n)+'</span><span class="fr-party">'+(r.partySize ? r.partySize+'名' : '')+'</span></div>'
-        + '<div class="fr-name">'+escapeHtml(r.name ? r.name : '仮押さえ')+'</div>'
-        + '<div class="fr-time">'+(r.startRaw ? r.startRaw + '〜' : '時間未定')+(hits.length>1 ? '　他'+(hits.length-1)+'件' : '')+'</div>'
-        + (lk ? '<div class="fr-link" style="color:'+groupColor[r.id]+'"><span class="fr-lk">連結 </span>'+lk.map(roomNumberOf).join('+')+'</div>' : '');
-      attr = ' data-resv="'+escapeAttr(r.id)+'"';
+      let shown = hits;
+      if(!ctx.allDay){            // 見取り図タブ：選んだ時刻までに始まっているものを1件見せる
+        const started = hits.filter(r=> toMinSafe(r.start) !== null && toMinSafe(r.start) <= t);
+        shown = [started.length ? started[started.length-1] : hits[0]];
+      }
+      const r0 = shown[0];
+      cls = shown.some(r=> r.status === '確定') ? 'confirmed' : 'temp';
+      const lk = groups[r0.id];
+      if(lk){ cls += ' linked'; style = 'border-color:' + groupColor[r0.id] + ';'; }
+      inner = '<div class="fr-top"><span class="fr-num">'+escapeHtml(n)+'</span>'
+        + (shown.length > 1 ? '<span class="fr-multi">'+shown.length+'組</span>' : '')
+        + (lk ? '<span class="fr-link" style="color:'+groupColor[r0.id]+'"><span class="fr-lk">連結 </span>'+lk.map(roomNumberOf).join('+')+'</span>' : '') + '</div>'
+        + '<div class="fr-bs">' + shown.map(floorBlockHtml).join('') + '</div>'
+        + (!ctx.allDay && hits.length > 1 ? '<div class="fr-sub">他'+(hits.length-1)+'件</div>' : '');
+      attr = ' data-resv="'+escapeAttr(r0.id)+'"';
     }
-    html += '<div class="fl room '+cls+'" style="'+pos(b.x+.06, b.y+.06, b.w-.12, b.h-.12)+style+'"'+attr+'>'+inner+'</div>';
+    html += '<div class="fl room '+cls+'" style="'+pos(b.x+.06, ry(b.y)+.06, b.w-.12, b.h*vs-.12)+style+'"'+attr+'>'+inner+'</div>';
+  });
+
+  // スマホ用「部屋ごとの予約」一覧（部屋番号順・カウンターは最後）。名前・人数・時刻・料理・※注意を切らずに出す
+  const rowHtml = (r)=> '<div class="rlRow'+(r.status==='確定'?'':' temp')+'" data-resv="'+escapeAttr(r.id)+'">'
+    + '<div class="rlHead"><b>'+(r.startRaw || '時間未定')+'</b> <span class="rlName">'+escapeHtml(r.name||'仮押さえ')+'</span> '
+    + (r.partySize ? r.partySize+'名' : '<span class="status-tag temp">人数未定</span>')
+    + (r.status==='確定' ? '' : ' <span class="status-tag temp">仮押さえ</span>')
+    + (groups[r.id] ? ' <span class="linkBadge">連結 '+groups[r.id].map(roomNumberOf).join('+')+'</span>' : '') + '</div>'
+    + floorDetailHtml(r, 'nr') + '</div>';
+  let rlHtml = '';
+  boxes.forEach(b=>{
+    const list = resv.filter(r=> r.resourceIds.indexOf(b.res.id) !== -1).sort(floorByTime);
+    if(list.length) rlHtml += '<div class="rlGroup"><div class="rlRoom">個室'+escapeHtml(roomNumberOf(b.res.id))+(list.length>1 ? '（'+list.length+'組）' : '')+'</div>'+list.map(rowHtml).join('')+'</div>';
   });
 
   // すしカウンター（L字）：席ごとではなく「埋まっている席数／席数」
   const counters = [];
   STORES.forEach(s=> s.resources.forEach(x=>{ if(x.type !== '個室' && !counters.some(c=> c.id === x.id)) counters.push(x); }));
+  const clistEl = document.getElementById(ctx.clist);
   if(counters.length){
     const cids = counters.map(c=> c.id);
     const cap = counters.reduce((a,c)=> a + (c.capacity||0), 0) || 7;
-    const here = resv.filter(r=> r.resourceIds.some(id=> cids.indexOf(id) !== -1) && floorCovers(r, t, false));
-    const conf = here.filter(r=> r.status === '確定').reduce((a,r)=> a + (r.partySize||0), 0);
-    const tmp  = here.filter(r=> r.status !== '確定').reduce((a,r)=> a + (r.partySize||0), 0);
+    const dayCounter = resv.filter(r=> r.resourceIds.some(id=> cids.indexOf(id) !== -1)).sort(floorByTime);
+    let here, conf, tmp, sumLabel;
+    if(ctx.allDay){
+      here = dayCounter;
+      // 同時に埋まる席数の最大（15分ごとに数える）
+      let peak = 0, peakConf = 0;
+      floorSlots().forEach(sl=>{
+        const m = toMinSafe(sl);
+        const on = dayCounter.filter(r=> floorCovers(r, m, false));
+        const c1 = on.filter(r=> r.status === '確定').reduce((a,r)=> a + (r.partySize||0), 0);
+        const all = on.reduce((a,r)=> a + (r.partySize||0), 0);
+        if(all > peak){ peak = all; peakConf = c1; }
+      });
+      conf = peakConf; tmp = peak - peakConf;
+      const total = dayCounter.reduce((a,r)=> a + (r.partySize||0), 0);
+      sumLabel = '<div class="fc-count'+(peak>cap?' over':'')+'">本日 <b>'+total+'</b>名<br><small>同時 最大 '+peak+'/'+cap+'席</small></div>';
+    } else {
+      here = dayCounter.filter(r=> floorCovers(r, t, false));
+      conf = here.filter(r=> r.status === '確定').reduce((a,r)=> a + (r.partySize||0), 0);
+      tmp  = here.filter(r=> r.status !== '確定').reduce((a,r)=> a + (r.partySize||0), 0);
+      sumLabel = '<div class="fc-count'+((conf+tmp)>cap?' over':'')+'"><b>'+(conf+tmp)+'</b>/'+cap+'席</div>';
+    }
     const used = conf + tmp;
+    if(dayCounter.length) rlHtml += '<div class="rlGroup"><div class="rlRoom">カウンター（'+dayCounter.length+'組）</div>'+dayCounter.map(rowHtml).join('')+'</div>';
+    clistEl.innerHTML = dayCounter.length ? dayCounter.map(r=>
+        '<div class="nrItem'+(r.status==='確定'?'':' temp')+'" data-resv="'+escapeAttr(r.id)+'">'
+        + '<span class="nrTime">'+(r.startRaw || '<span class="unset">時間未定</span>')+'</span>'
+        + '<b>'+escapeHtml(r.name||'仮押さえ')+'</b>'+(r.partySize?' '+r.partySize+'名':'<span class="status-tag temp">人数未定</span>')
+        + (!ctx.allDay && here.indexOf(r) !== -1 ? '<span class="linkBadge">いま</span>' : '')
+        + (r.status==='確定'?'':'<span class="status-tag temp">仮押さえ</span>')
+        + floorDetailHtml(r, 'nr')
+        + '</div>').join('') : '<div class="empty-msg">'+(haveAll ? 'カウンターの予約はありません' : '読み込み中…')+'</div>';
     const seatPos = [ // 席7・6・5・4（縦の辺・上から）、席3・2・1（下の横の辺・左から）。客席はL字の外側
       [.2,.75],[.2,1.65],[.2,2.55],[.2,3.45],
       [1.2,4.95],[2.15,4.95],[3.1,4.95]
@@ -886,61 +1083,54 @@ function drawFloor(){
     html += '<div class="fl bar" style="'+pos(1.1,.7,.5,3.6)+'"></div><div class="fl bar" style="'+pos(1.1,4.3,2.9,.5)+'"></div>';
     for(let i=0;i<7;i++){
       const no = seatNo[i];
-      // 人数分だけ色を付ける（確定＝ティール・仮押さえ＝黄）。席番号の順に埋める
-      const k = no; // 席1から順に
-      const cls = k <= conf ? 'on' : (k <= used ? 'tmp' : '');
+      // 人数分だけ色を付ける（確定＝ティール・仮押さえ＝黄）。席1から順に埋める
+      const cls = no <= conf ? 'on' : (no <= used ? 'tmp' : '');
       html += '<div class="fl seat '+cls+'" data-counter="1" style="'+pos(seatPos[i][0],seatPos[i][1],.7,.7)+'">'+no+'</div>';
     }
-    const dayCounter = resv.filter(r=> r.resourceIds.some(id=> cids.indexOf(id) !== -1)).sort((a,c)=> String(a.start).localeCompare(String(c.start)));
-    document.getElementById('floorCounterList').innerHTML = dayCounter.length ? dayCounter.map(r=>
-        '<div class="nrItem'+(r.status==='確定'?'':' temp')+'" data-resv="'+escapeAttr(r.id)+'">'
-        + '<span class="nrTime">'+(r.startRaw || '<span class="unset">時間未定</span>')+'</span>'
-        + '<b>'+escapeHtml(r.name||'仮押さえ')+'</b>'+(r.partySize?' '+r.partySize+'名':'<span class="status-tag temp">人数未定</span>')
-        + (here.indexOf(r) !== -1 ? '<span class="linkBadge">いま</span>' : '')
-        + (r.status==='確定'?'':'<span class="status-tag temp">仮押さえ</span>')
-        + '</div>').join('') : '<div class="empty-msg">'+(haveAll ? 'この日、カウンターの予約はありません' : '読み込み中…')+'</div>';
-    const items = here.slice().sort((a,c)=> String(a.start).localeCompare(String(c.start)));
     html += '<div class="fl counter" data-counter="1" style="'+pos(1.85,.7,3.1,3.6)+'">'
-      + '<div class="fc-title">カウンター</div>'
-      + '<div class="fc-count'+(used>cap?' over':'')+'"><b>'+used+'</b>/'+cap+'席</div>'
-      + items.slice(0,3).map(r=> '<div class="fc-item'+(r.status==='確定'?'':' temp')+(r.partySize?'':' np')+'" data-resv="'+escapeAttr(r.id)+'">'+escapeHtml(r.name||'仮押さえ')+(r.partySize?' '+r.partySize+'名':' 人数未定')+'</div>').join('')
-      + (items.length>3 ? '<div class="fc-item">他'+(items.length-3)+'件</div>' : '')
+      + '<div class="fc-title">カウンター</div>' + sumLabel
+      + dayCounter.slice(0,3).map(r=> '<div class="fc-item'+(r.status==='確定'?'':' temp')+(r.partySize?'':' np')+'" data-resv="'+escapeAttr(r.id)+'">'+escapeHtml(r.name||'仮押さえ')+(r.partySize?' '+r.partySize+'名':' 人数未定')+'</div>').join('')
+      + (dayCounter.length>3 ? '<div class="fc-item">他'+(dayCounter.length-3)+'件</div>' : '')
       + '</div>';
   }
   canvas.innerHTML = html;
+  const rlEl = document.getElementById(ctx.rlist);
+  if(rlEl) rlEl.innerHTML = rlHtml ? '<h2 class="section">部屋ごとの予約</h2>' + rlHtml : (haveAll ? '<h2 class="section">部屋ごとの予約</h2><div class="empty-msg">予約はありません</div>' : '');
 
   // 部屋未定の置き場
-  const side = document.getElementById('floorNoRoom');
-  const noRoom = resv.filter(r=> !r.resourceIds || r.resourceIds.length === 0).sort((a,c)=> String(a.start).localeCompare(String(c.start)));
+  const side = document.getElementById(ctx.noroom);
+  const noRoom = resv.filter(r=> !r.resourceIds || r.resourceIds.length === 0).sort(floorByTime);
   side.innerHTML = noRoom.length ? noRoom.map(r=>
       '<div class="nrItem'+(r.status==='確定'?'':' temp')+'" data-resv="'+escapeAttr(r.id)+'">'
       + '<span class="nrTime">'+(r.startRaw || '<span class="unset">時間未定</span>')+'</span>'
       + '<span class="storechip '+escapeAttr(r.ownerStoreId||'')+'">'+(r.ownerStoreId==='sushi'?'すし':'焼肉')+'</span>'
       + '<b>'+escapeHtml(r.name||'仮押さえ')+'</b>'+(r.partySize?' '+r.partySize+'名':'')
       + (r.status==='確定'?'':'<span class="status-tag temp">仮押さえ</span>') + routeBadge(r.route)
+      + floorDetailHtml(r, 'nr')
       + '</div>').join('')
     : '<div class="empty-msg">'+(haveAll ? 'この日、部屋が決まっていない予約はありません' : '読み込み中…')+'</div>';
 }
 /** 予約あり・部屋未定を押したとき：既存の日表示の予約一覧で詳細（編集）を開く */
-function floorOpenResv(id){
-  const r = floorMergedResv().find(x=> x.id === id); if(!r) return;
+function floorOpenResv(ctx, id){
+  const r = floorMergedResv(ctx).find(x=> x.id === id); if(!r) return;
   currentStoreId = r.ownerStoreId || STORES[0].id;
-  showDayView(floorDate, 'floor', r.id);
+  showDayView(floorDateOf(ctx), ctx.ret, r.id);
 }
-function floorOnClick(e){
+function floorOnClick(ctx, e){
   const el = e.target.closest('[data-resv],[data-room],[data-counter]');
   if(!el) return;
-  if(el.dataset.resv){ e.stopPropagation(); floorOpenResv(el.dataset.resv); return; }
-  if(el.dataset.room){ openModal(STORES[0].id, [el.dataset.room], floorDate, floorTime); return; }
+  if(el.dataset.resv){ e.stopPropagation(); floorOpenResv(ctx, el.dataset.resv); return; }
+  const date = floorDateOf(ctx), time = ctx.allDay ? '' : floorTime;
+  if(el.dataset.room){ openModal(STORES[0].id, [el.dataset.room], date, time); return; }
   if(el.dataset.counter){
     const sushi = STORES.find(s=> s.resources.some(x=> x.type !== '個室')) || STORES[STORES.length-1];
     const c = sushi.resources.find(x=> x.type !== '個室');
-    if(c) openModal(sushi.id, [c.id], floorDate, floorTime);
+    if(c) openModal(sushi.id, [c.id], date, time);
   }
 }
-document.getElementById('floorCanvas').addEventListener('click', floorOnClick);
-document.getElementById('floorNoRoom').addEventListener('click', floorOnClick);
-document.getElementById('floorCounterList').addEventListener('click', floorOnClick);
+[FLOOR_VIEW, FLOOR_TODAY].forEach(ctx=>{
+  [ctx.canvas, ctx.noroom, ctx.clist, ctx.rlist].forEach(id=> document.getElementById(id).addEventListener('click', e=> floorOnClick(ctx, e)));
+});
 function floorShiftDay(n){
   const p = floorDate.split('-').map(Number);
   floorDate = localYmd(new Date(p[0], p[1]-1, p[2]+n));
@@ -949,9 +1139,12 @@ function floorShiftDay(n){
 document.getElementById('floorPrevDay').onclick = ()=> floorShiftDay(-1);
 document.getElementById('floorNextDay').onclick = ()=> floorShiftDay(1);
 document.getElementById('floorDate').onchange = function(){ if(this.value){ floorDate = this.value; showFloorView(); } };
-document.getElementById('floorTime').onchange = function(){ floorTime = this.value; drawFloor(); };
+document.getElementById('floorTime').onchange = function(){ floorTime = this.value; drawFloor(FLOOR_VIEW); };
 document.getElementById('floorNow').onclick = ()=>{ floorDate = localYmd(new Date()); floorTime = floorNearestSlot(); showFloorView(); };
-window.addEventListener('resize', ()=>{ if(document.getElementById('floorView').style.display !== 'none') drawFloor(); });
+window.addEventListener('resize', ()=>{
+  if(document.getElementById('floorView').style.display !== 'none') drawFloor(FLOOR_VIEW);
+  if(document.getElementById('todayView').style.display !== 'none') drawFloor(FLOOR_TODAY);
+});
 
 /* ---------- 週表示（PC向け：7日分を部屋ごとに並べる） ---------- */
 let currentWeekStart = localYmd(new Date());
@@ -1057,6 +1250,8 @@ document.getElementById('newBtn').onclick = ()=> openModal(currentStoreId, [], c
 
 /* ---------- 今日・明日 ---------- */
 function loadTodayTomorrow(){
+  document.getElementById('todayFloorTitle').textContent = '本日 ' + fmtJP(localYmd(new Date())) + ' の見取り図';
+  loadFloor(FLOOR_TODAY);
   // 最初の1回は、起動時に一緒に受け取った分をすぐ出す（外の画面のとき・通信を1往復減らす）
   const boot = (typeof window.__BOOT === 'object' && window.__BOOT) ? window.__BOOT : null;
   let shown = false;
@@ -1740,7 +1935,7 @@ document.getElementById('saveBtn').onclick = ()=>{
       if(document.getElementById('dayView').style.display !== 'none') reloadCurrentView();
       if(document.getElementById('todayView').style.display !== 'none') loadTodayTomorrow();
       if(document.getElementById('monthView').style.display !== 'none') renderMonth();
-      if(document.getElementById('floorView').style.display !== 'none') loadFloor();
+      if(document.getElementById('floorView').style.display !== 'none') loadFloor(FLOOR_VIEW);
     }).withFailureHandler(e=>{
       unlock();
       document.getElementById('modalErr').textContent = (e && e.message) ? e.message : String(e);

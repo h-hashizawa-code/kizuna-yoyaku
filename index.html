@@ -289,6 +289,67 @@ tr.tapRow{cursor:pointer}
 .wltime{font-weight:bold;min-width:3.2em;color:#00525A}
 .wlroom{color:#333}
 .wlname{font-weight:bold;color:#222}
+
+/* ---- 2026-11-18：見取り図 ---- */
+.floorbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0 6px}
+.floorbar input[type=date],.floorbar select{padding:8px;border:1px solid #ccc;border-radius:6px;font-size:15px;background:#fff;color:#2b2b2b}
+.floorbar .btn.small{padding:8px 12px}
+.floornote{font-size:12px;color:#8A5B00;margin:2px 0;min-height:4px}
+.floorlayout{display:flex;gap:16px;align-items:flex-start;margin-top:6px}
+.floorcanvaswrap{flex:1 1 auto;min-width:0;max-width:900px}
+.floorside{flex:0 0 270px}
+.floorside h2.section{margin-top:4px}
+.floorcanvas{position:relative;width:100%;background:#FFFFFF;border:1px solid #E3EEEF;border-radius:10px;--u:22px;overflow:hidden}
+.floorcanvas .fl{position:absolute;box-sizing:border-box}
+.floorcanvas svg.flink{position:absolute;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.fl.wall{background:#8B9A9C;border-radius:2px}
+.fl.entr{color:#00707A;font-weight:bold;font-size:clamp(9px,calc(var(--u)*.42),14px);text-align:center;line-height:1;display:flex;align-items:center;justify-content:center;white-space:nowrap}
+.fl.room{z-index:1;border-radius:8px;border:2px solid #CFE3E5;background:#FFFFFF;color:#555;padding:2px 3px;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;line-height:1.2}
+.fl.room.empty:hover{background:#F2FBFB;border-color:#00A9B2}
+.fl.room.confirmed{background:#CFEFF1;border-color:#00A9B2;color:#00424A}
+.fl.room.temp{background:#FFE8B8;border-color:#E0A800;border-style:dashed;color:#6B4600}
+.fl.room.linked{border-width:3px}
+.fr-top{display:flex;justify-content:space-between;align-items:baseline;gap:2px}
+.fr-num{font-weight:bold;font-size:clamp(12px,calc(var(--u)*.5),22px)}
+.fr-party{font-size:clamp(9px,calc(var(--u)*.3),14px);font-weight:bold;white-space:nowrap}
+.fr-name{font-size:clamp(10px,calc(var(--u)*.3),15px);font-weight:bold;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all}
+.fr-sub{font-size:clamp(8px,calc(var(--u)*.26),12px);color:#7A8B8D}
+.fr-time{font-size:clamp(8px,calc(var(--u)*.26),12px)}
+.fr-link{font-size:clamp(8px,calc(var(--u)*.24),11px);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl.bar{background:#DCE9EA;border:1px solid #B9CFD1;z-index:1}
+.fl.seat{z-index:2;border-radius:50%;border:2px solid #B9CFD1;background:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:clamp(7px,calc(var(--u)*.26),11px);color:#8A9A9C;cursor:pointer;line-height:1}
+.fl.seat.on{background:#00A9B2;border-color:#00A9B2;color:#fff}
+.fl.seat.tmp{background:#FFC94A;border-color:#E0A800;color:#5A3B00}
+.fl.counter{z-index:1;padding:3px 4px;cursor:pointer;border-radius:8px;overflow:hidden;color:#6B4600;background:#FFFCF3;border:1px solid #F0E2BC}
+.fc-title{font-size:clamp(9px,calc(var(--u)*.3),14px);font-weight:bold;color:#8A5B00}
+.fc-count{font-size:clamp(9px,calc(var(--u)*.3),14px);color:#6B4600}
+.fc-count b{font-size:clamp(14px,calc(var(--u)*.7),30px);color:#6B4600}
+.fc-count.over b{color:#B23A3A}
+.fc-item{font-size:clamp(8px,calc(var(--u)*.27),13px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:4px;padding:0 2px;margin-top:1px;background:#F6E7C8}
+.fc-item.np{background:#FFD3B5}
+.fc-item.temp{background:#FFF0C6;border:1px dashed #E0A800}
+.floorLegend{display:flex;gap:14px;font-size:12px;margin:8px 0;color:#555;flex-wrap:wrap}
+.floorLegend .sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:middle;margin-right:4px;border:2px solid #CFE3E5;background:#fff}
+.floorLegend .sw.c{background:#CFEFF1;border-color:#00A9B2}
+.floorLegend .sw.t{background:#FFE8B8;border-color:#E0A800;border-style:dashed}
+.floorLegend .sw.k{background:#fff;border:3px solid #7A4FD1}
+.nrItem{border:1px solid #F3C9A8;background:#FFF8F2;border-radius:10px;padding:8px 10px;margin-bottom:8px;cursor:pointer;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:14px}
+.nrItem.temp{background:#FFF9EC;border-color:#F0D58A}
+.nrTime{font-weight:bold;color:#00525A;min-width:3.2em}
+.nrHint{font-size:11px;color:#999;margin:-2px 0 8px}
+@media (max-width: 640px){
+  .floorlayout{flex-direction:column}
+  .floorside{flex:1 1 auto;width:100%}
+  .floorcanvaswrap{width:100%}
+  .fr-time,.fr-lk,.fc-item{display:none}
+  .floorbar input[type=date]{flex:1 1 150px}
+}
+html.sp .floorlayout{flex-direction:column}
+html.sp .floorside{flex:1 1 auto;width:100%}
+html.sp .floorcanvaswrap{width:100%}
+html.sp .fr-time,html.sp .fr-lk,html.sp .fc-item{display:none}
+html.sp .floorbar input[type=date]{flex:1 1 150px}
+@media print{ #floorView .floorbar, #floorView .floorLegend{display:none} }
 </style>
 <script>
 (function(){
@@ -312,6 +373,7 @@ function switchView(v){ try{ localStorage.setItem('kizuna_view', v); }catch(e){}
     <div class="tab" id="navToday">今日</div>
     <div class="tab" id="navMonth">月表示</div>
     <div class="tab" id="navWeek">週表示</div>
+    <div class="tab" id="navFloor">見取り図</div>
   </div>
   <div class="whoami" id="whoamiBar" style="display:none">
     <span id="whoamiText"></span>
@@ -364,6 +426,35 @@ function switchView(v){ try{ localStorage.setItem('kizuna_view', v); }catch(e){}
     <div class="weekwrap" id="weekWrap"><table class="week" id="weekTable"></table></div>
     <!-- スマホ用：7日分を日ごとの縦の一覧で出す（2026-10-11 橋沢さん：携帯でも週を見たい） -->
     <div class="weeklist" id="weekList" style="display:none"></div>
+  </div>
+
+  <!-- ================= 見取り図（2026-11-18）：日付と時刻を選んで、その時刻の部屋の埋まり具合を図で見る ================= -->
+  <div id="floorView" style="display:none">
+    <div class="floorbar">
+      <button class="btn outline small" id="floorPrevDay">◀</button>
+      <input type="date" id="floorDate">
+      <button class="btn outline small" id="floorNextDay">▶</button>
+      <select id="floorTime"></select>
+      <button class="btn outline small" id="floorNow">いま</button>
+    </div>
+    <div class="floorLegend">
+      <span><span class="sw"></span>空き</span>
+      <span><span class="sw t"></span>仮押さえ</span>
+      <span><span class="sw c"></span>予約あり</span>
+      <span><span class="sw k"></span>連結（同じ色の枠と線でつながる）</span>
+    </div>
+    <div class="floornote" id="floorNote"></div>
+    <div class="floorlayout">
+      <div class="floorcanvaswrap"><div class="floorcanvas" id="floorCanvas"></div></div>
+      <div class="floorside">
+        <h2 class="section">部屋未定の予約</h2>
+        <div class="nrHint">押すと予約の画面が開き、部屋を決められます</div>
+        <div id="floorNoRoom"></div>
+        <h2 class="section">カウンターの予約（この日）</h2>
+        <div class="nrHint">「いま」の印は、選んだ時刻に席を使っている予約です</div>
+        <div id="floorCounterList"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ================= 日表示 ================= -->
@@ -616,15 +707,258 @@ function setActiveNav(which){
   document.getElementById('navToday').classList.toggle('active', which==='today');
   document.getElementById('navMonth').classList.toggle('active', which==='month');
   document.getElementById('navWeek').classList.toggle('active', which==='week');
+  document.getElementById('navFloor').classList.toggle('active', which==='floor');
   if(which!=='week') document.getElementById('weekView').style.display = 'none';
-  document.body.classList.toggle('wide', which==='week' && !isSpView()); // 週表示はPCの横幅いっぱいに
+  if(which!=='floor') document.getElementById('floorView').style.display = 'none';
+  document.body.classList.toggle('wide', (which==='week' || which==='floor') && !isSpView()); // 週・見取り図はPCの横幅いっぱいに
 }
+
+/* ---------- 見取り図（2026-11-18） ----------
+   壁と入口が上。左上にL字のすしカウンター、壁ぞいに個室10・9・8・7・6、その手前に3・4・5、カウンターの下に2。
+   座標は「1マス＝1」の単位。設定_資源シートに 図X・図Y（任意で 図幅・図高）があればそれを使い、無ければ下の既定を使う。
+   埋まり判定は個室入力・日表示と同じ考え方（個室は終日1組＝その日に1組でも入っていれば埋まり・時間未定も埋まり扱い／
+   2時間制の期間は開始〜終了／カウンターは開始から滞在時間の間） */
+const FLOOR_W = 15.4, FLOOR_H = 6.4, FLOOR_RW = 2.0, FLOOR_RH = 2.6;
+const FLOOR_DEFAULT = {
+  '10':{x:5.2,y:.5}, '9':{x:7.2,y:.5}, '8':{x:9.2,y:.5}, '7':{x:11.2,y:.5}, '6':{x:13.2,y:.5},
+  '2':{x:5.2,y:3.4}, '3':{x:7.2,y:3.4}, '4':{x:10.2,y:3.4}, '5':{x:13.2,y:3.4}
+};
+const FLOOR_LINK_COLORS = ['#7A4FD1','#E0662F','#2457A6','#B23A8F','#3F8F3F'];
+let floorDate = null, floorTime = null, floorDays = {}, floorSeq = 0, floorErr = '';
+function floorSlots(){ const a=[]; for(let m=17*60; m<=22*60+45; m+=15){ a.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')); } return a; }
+function floorNearestSlot(){
+  const n = new Date(); let m = n.getHours()*60 + n.getMinutes();
+  m = Math.round(m/15)*15;
+  m = Math.max(17*60, Math.min(22*60+45, m));
+  return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+}
+function showFloorView(){
+  if(!floorDate){ floorDate = localYmd(new Date()); }
+  if(!floorTime){ floorTime = floorNearestSlot(); }
+  rememberView('floor=' + floorDate);
+  setActiveNav('floor');
+  ['todayView','monthView','dayView','weekView'].forEach(id=> document.getElementById(id).style.display = 'none');
+  document.getElementById('floorView').style.display = 'block';
+  syncFloorBar();
+  loadFloor();
+}
+function syncFloorBar(){
+  const sel = document.getElementById('floorTime');
+  if(!sel.options.length){ sel.innerHTML = floorSlots().map(t=> '<option value="'+t+'">'+t+'</option>').join(''); }
+  sel.value = floorTime;
+  document.getElementById('floorDate').value = floorDate;
+}
+function loadFloor(){
+  const seq = ++floorSeq, date = floorDate;
+  floorErr = ''; floorDays = {};
+  STORES.forEach(s=>{
+    const k = memoKey(s.id, date);
+    const c = (dayMemo[k] && dayMemo[k].data) || lsGet('kz_day:' + k);
+    if(c && c.resv) floorDays[s.id] = c;
+  });
+  drawFloor();
+  STORES.forEach(s=>{
+    fetchDay(s.id, date, function(d){
+      if(seq !== floorSeq) return;
+      floorDays[s.id] = d; drawFloor();
+    }, function(e){
+      if(seq !== floorSeq) return;
+      floorErr = (e && e.message) ? e.message : '読み込みに失敗しました';
+      drawFloor();
+    });
+  });
+}
+/** 2店ぶんの予約を1つにまとめる（個室は両店共有。予約IDで重なりを除く） */
+function floorMergedResv(){
+  const map = {};
+  STORES.forEach(s=>{
+    const d = floorDays[s.id]; if(!d || !d.resv) return;
+    d.resv.forEach(r=>{
+      const own = !r.otherStoreName;           // 自分の店の予約として返ってきた方を正とする（終了時刻はその店の滞在時間で計算されるため）
+      if(!map[r.id] || own) map[r.id] = Object.assign({}, r, { ownerStoreId: own ? s.id : ((map[r.id] && map[r.id].ownerStoreId) || null) });
+    });
+  });
+  return Object.keys(map).map(k=> map[k]);
+}
+/** 選んだ時刻 t（分）にその予約が席を使っているか */
+function floorCovers(r, t, isRoom){
+  if(isRoom && (r.wholeDay || !r.startRaw)) return true;
+  const s = toMinSafe(r.start); if(s === null) return true;
+  let e = toMinSafe(r.end);
+  if(e === null) e = s + 120; else if(e <= s) e += 24*60;
+  // 個室（2時間制の期間）：その時刻から新規1組（既存予約と同じ長さ）を入れたら重なるか＝個室入力 roomBusyBy と同じ式
+  if(isRoom) return t < e && s < t + (e - s);
+  return t < e && s < t + 15;
+}
+function floorRooms(){
+  const seen = {}, rooms = [];
+  STORES.forEach(s=> s.resources.forEach(x=>{ if(x.type==='個室' && !seen[x.id]){ seen[x.id]=true; rooms.push(x); } }));
+  rooms.sort((a,b)=> Number(roomNumberOf(a.id)) - Number(roomNumberOf(b.id)));
+  return rooms;
+}
+function floorRoomBox(x, extraIdx){
+  const n = roomNumberOf(x.id), d = FLOOR_DEFAULT[n] || {};
+  const hasSheet = (x.fx != null && x.fy != null);
+  let px = hasSheet ? x.fx : d.x, py = hasSheet ? x.fy : d.y;
+  if(px == null || py == null){ px = .6 + extraIdx*(FLOOR_RW+.3); py = FLOOR_H - FLOOR_RH - .1; }
+  return { x: px, y: py, w: (x.fw != null ? x.fw : (d.w || FLOOR_RW)), h: (x.fh != null ? x.fh : (d.h || FLOOR_RH)), placed: hasSheet || !!FLOOR_DEFAULT[n] };
+}
+function floorPct(v, total){ return (v/total*100).toFixed(3) + '%'; }
+function drawFloor(){
+  const canvas = document.getElementById('floorCanvas');
+  const t = toMinSafe(floorTime);
+  const resv = floorMergedResv();
+  const haveAll = STORES.every(s=> floorDays[s.id]);
+  const notes = [];
+  STORES.forEach(s=>{ const d = floorDays[s.id]; if(d && d.dayInfo && d.dayInfo.closed) notes.push(s.name + 'は' + weekdayJp(floorDate) + '曜日は定休日です'); });
+  if(floorErr && !haveAll) notes.push('⚠ ' + floorErr + '（日付か「いま」を押すと読み直します）');
+  else if(!haveAll) notes.push('読み込み中…');
+  document.getElementById('floorNote').textContent = notes.join(' ／ ');
+
+  const rooms = floorRooms();
+  let extra = 0;
+  const boxes = rooms.map(x=>{ const b = floorRoomBox(x, extra); if(!b.placed) extra++; return Object.assign({res:x}, b); });
+  const W = Math.max(FLOOR_W, ...boxes.map(b=> b.x + b.w + .2)), H = Math.max(FLOOR_H, ...boxes.map(b=> b.y + b.h + .2));
+  canvas.style.aspectRatio = W + ' / ' + H;
+  canvas.style.setProperty('--u', (canvas.clientWidth ? canvas.clientWidth / W : 22).toFixed(2) + 'px');
+
+  // 連結（1件の予約が複数の部屋に付いている）→ 組ごとに色
+  const groups = {}, groupColor = {}; let gi = 0;
+  resv.forEach(r=>{
+    if(r.resourceIds.length > 1) groups[r.id] = r.resourceIds.slice().sort((a,b)=> Number(roomNumberOf(a)) - Number(roomNumberOf(b)));
+  });
+  Object.keys(groups).forEach(id=>{ groupColor[id] = FLOOR_LINK_COLORS[gi++ % FLOOR_LINK_COLORS.length]; });
+
+  const boxById = {}; boxes.forEach(b=> boxById[b.res.id] = b);
+  const pos = (x,y,w,h)=> 'left:'+floorPct(x,W)+';top:'+floorPct(y,H)+';width:'+floorPct(w,W)+';height:'+floorPct(h,H)+';';
+  let html = '';
+  // 壁と入口（上辺・入口は左から約1/3）
+  const gx1 = 3.7, gx2 = 5.1;
+  html += '<div class="fl wall" style="'+pos(0,0,gx1,.2)+'"></div><div class="fl wall" style="'+pos(gx2,0,W-gx2,.2)+'"></div>';
+  html += '<div class="fl entr" style="'+pos(gx1,.15,gx2-gx1,.4)+'">▼入口</div>';
+
+  // 連結の線（箱の後ろ）
+  let svg = '<svg class="flink" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">';
+  Object.keys(groups).forEach(id=>{
+    const pts = groups[id].map(rid=> boxById[rid]).filter(Boolean).map(b=> (b.x + b.w/2) + ',' + (b.y + b.h/2));
+    if(pts.length >= 2) svg += '<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+groupColor[id]+'" stroke-width=".22" stroke-linecap="round" stroke-linejoin="round"/>';
+  });
+  html += svg + '</svg>';
+
+  // 個室
+  boxes.forEach(b=>{
+    const x = b.res, n = roomNumberOf(x.id);
+    const hits = resv.filter(r=> r.resourceIds.indexOf(x.id) !== -1 && floorCovers(r, t, true))
+      .sort((a,c)=> String(a.start).localeCompare(String(c.start)));
+    let cls = 'empty', style = '', attr = ' data-room="'+escapeAttr(x.id)+'"';
+    let inner = '<div class="fr-top"><span class="fr-num">'+escapeHtml(n)+'</span></div><div class="fr-sub">空き</div>';
+    if(hits.length){
+      // 複数あるときは、選んだ時刻までに始まっているものを見せる
+      const started = hits.filter(r=> toMinSafe(r.start) !== null && toMinSafe(r.start) <= t);
+      const r = started.length ? started[started.length-1] : hits[0];
+      cls = (r.status === '確定') ? 'confirmed' : 'temp';
+      const lk = groups[r.id];
+      if(lk){ cls += ' linked'; style = 'border-color:' + groupColor[r.id] + ';'; }
+      inner = '<div class="fr-top"><span class="fr-num">'+escapeHtml(n)+'</span><span class="fr-party">'+(r.partySize ? r.partySize+'名' : '')+'</span></div>'
+        + '<div class="fr-name">'+escapeHtml(r.name ? r.name : '仮押さえ')+'</div>'
+        + '<div class="fr-time">'+(r.startRaw ? r.startRaw + '〜' : '時間未定')+(hits.length>1 ? '　他'+(hits.length-1)+'件' : '')+'</div>'
+        + (lk ? '<div class="fr-link" style="color:'+groupColor[r.id]+'"><span class="fr-lk">連結 </span>'+lk.map(roomNumberOf).join('+')+'</div>' : '');
+      attr = ' data-resv="'+escapeAttr(r.id)+'"';
+    }
+    html += '<div class="fl room '+cls+'" style="'+pos(b.x+.06, b.y+.06, b.w-.12, b.h-.12)+style+'"'+attr+'>'+inner+'</div>';
+  });
+
+  // すしカウンター（L字）：席ごとではなく「埋まっている席数／席数」
+  const counters = [];
+  STORES.forEach(s=> s.resources.forEach(x=>{ if(x.type !== '個室' && !counters.some(c=> c.id === x.id)) counters.push(x); }));
+  if(counters.length){
+    const cids = counters.map(c=> c.id);
+    const cap = counters.reduce((a,c)=> a + (c.capacity||0), 0) || 7;
+    const here = resv.filter(r=> r.resourceIds.some(id=> cids.indexOf(id) !== -1) && floorCovers(r, t, false));
+    const conf = here.filter(r=> r.status === '確定').reduce((a,r)=> a + (r.partySize||0), 0);
+    const tmp  = here.filter(r=> r.status !== '確定').reduce((a,r)=> a + (r.partySize||0), 0);
+    const used = conf + tmp;
+    const seatPos = [ // 席7・6・5・4（縦の辺・上から）、席3・2・1（下の横の辺・左から）。客席はL字の外側
+      [.2,.75],[.2,1.65],[.2,2.55],[.2,3.45],
+      [1.2,4.95],[2.15,4.95],[3.1,4.95]
+    ];
+    const seatNo = [7,6,5,4,3,2,1];
+    html += '<div class="fl bar" style="'+pos(1.1,.7,.5,3.6)+'"></div><div class="fl bar" style="'+pos(1.1,4.3,2.9,.5)+'"></div>';
+    for(let i=0;i<7;i++){
+      const no = seatNo[i];
+      // 人数分だけ色を付ける（確定＝ティール・仮押さえ＝黄）。席番号の順に埋める
+      const k = no; // 席1から順に
+      const cls = k <= conf ? 'on' : (k <= used ? 'tmp' : '');
+      html += '<div class="fl seat '+cls+'" data-counter="1" style="'+pos(seatPos[i][0],seatPos[i][1],.7,.7)+'">'+no+'</div>';
+    }
+    const dayCounter = resv.filter(r=> r.resourceIds.some(id=> cids.indexOf(id) !== -1)).sort((a,c)=> String(a.start).localeCompare(String(c.start)));
+    document.getElementById('floorCounterList').innerHTML = dayCounter.length ? dayCounter.map(r=>
+        '<div class="nrItem'+(r.status==='確定'?'':' temp')+'" data-resv="'+escapeAttr(r.id)+'">'
+        + '<span class="nrTime">'+(r.startRaw || '<span class="unset">時間未定</span>')+'</span>'
+        + '<b>'+escapeHtml(r.name||'仮押さえ')+'</b>'+(r.partySize?' '+r.partySize+'名':'<span class="status-tag temp">人数未定</span>')
+        + (here.indexOf(r) !== -1 ? '<span class="linkBadge">いま</span>' : '')
+        + (r.status==='確定'?'':'<span class="status-tag temp">仮押さえ</span>')
+        + '</div>').join('') : '<div class="empty-msg">'+(haveAll ? 'この日、カウンターの予約はありません' : '読み込み中…')+'</div>';
+    const items = here.slice().sort((a,c)=> String(a.start).localeCompare(String(c.start)));
+    html += '<div class="fl counter" data-counter="1" style="'+pos(1.85,.7,3.1,3.6)+'">'
+      + '<div class="fc-title">カウンター</div>'
+      + '<div class="fc-count'+(used>cap?' over':'')+'"><b>'+used+'</b>/'+cap+'席</div>'
+      + items.slice(0,3).map(r=> '<div class="fc-item'+(r.status==='確定'?'':' temp')+(r.partySize?'':' np')+'" data-resv="'+escapeAttr(r.id)+'">'+escapeHtml(r.name||'仮押さえ')+(r.partySize?' '+r.partySize+'名':' 人数未定')+'</div>').join('')
+      + (items.length>3 ? '<div class="fc-item">他'+(items.length-3)+'件</div>' : '')
+      + '</div>';
+  }
+  canvas.innerHTML = html;
+
+  // 部屋未定の置き場
+  const side = document.getElementById('floorNoRoom');
+  const noRoom = resv.filter(r=> !r.resourceIds || r.resourceIds.length === 0).sort((a,c)=> String(a.start).localeCompare(String(c.start)));
+  side.innerHTML = noRoom.length ? noRoom.map(r=>
+      '<div class="nrItem'+(r.status==='確定'?'':' temp')+'" data-resv="'+escapeAttr(r.id)+'">'
+      + '<span class="nrTime">'+(r.startRaw || '<span class="unset">時間未定</span>')+'</span>'
+      + '<span class="storechip '+escapeAttr(r.ownerStoreId||'')+'">'+(r.ownerStoreId==='sushi'?'すし':'焼肉')+'</span>'
+      + '<b>'+escapeHtml(r.name||'仮押さえ')+'</b>'+(r.partySize?' '+r.partySize+'名':'')
+      + (r.status==='確定'?'':'<span class="status-tag temp">仮押さえ</span>') + routeBadge(r.route)
+      + '</div>').join('')
+    : '<div class="empty-msg">'+(haveAll ? 'この日、部屋が決まっていない予約はありません' : '読み込み中…')+'</div>';
+}
+/** 予約あり・部屋未定を押したとき：既存の日表示の予約一覧で詳細（編集）を開く */
+function floorOpenResv(id){
+  const r = floorMergedResv().find(x=> x.id === id); if(!r) return;
+  currentStoreId = r.ownerStoreId || STORES[0].id;
+  showDayView(floorDate, 'floor', r.id);
+}
+function floorOnClick(e){
+  const el = e.target.closest('[data-resv],[data-room],[data-counter]');
+  if(!el) return;
+  if(el.dataset.resv){ e.stopPropagation(); floorOpenResv(el.dataset.resv); return; }
+  if(el.dataset.room){ openModal(STORES[0].id, [el.dataset.room], floorDate, floorTime); return; }
+  if(el.dataset.counter){
+    const sushi = STORES.find(s=> s.resources.some(x=> x.type !== '個室')) || STORES[STORES.length-1];
+    const c = sushi.resources.find(x=> x.type !== '個室');
+    if(c) openModal(sushi.id, [c.id], floorDate, floorTime);
+  }
+}
+document.getElementById('floorCanvas').addEventListener('click', floorOnClick);
+document.getElementById('floorNoRoom').addEventListener('click', floorOnClick);
+document.getElementById('floorCounterList').addEventListener('click', floorOnClick);
+function floorShiftDay(n){
+  const p = floorDate.split('-').map(Number);
+  floorDate = localYmd(new Date(p[0], p[1]-1, p[2]+n));
+  showFloorView();
+}
+document.getElementById('floorPrevDay').onclick = ()=> floorShiftDay(-1);
+document.getElementById('floorNextDay').onclick = ()=> floorShiftDay(1);
+document.getElementById('floorDate').onchange = function(){ if(this.value){ floorDate = this.value; showFloorView(); } };
+document.getElementById('floorTime').onchange = function(){ floorTime = this.value; drawFloor(); };
+document.getElementById('floorNow').onclick = ()=>{ floorDate = localYmd(new Date()); floorTime = floorNearestSlot(); showFloorView(); };
+window.addEventListener('resize', ()=>{ if(document.getElementById('floorView').style.display !== 'none') drawFloor(); });
+
 /* ---------- 週表示（PC向け：7日分を部屋ごとに並べる） ---------- */
 let currentWeekStart = localYmd(new Date());
 function showWeekView(){
   rememberView('week=' + currentWeekStart);
   setActiveNav('week');
-  ['todayView','monthView','dayView'].forEach(id=> document.getElementById(id).style.display = 'none');
+  ['todayView','monthView','dayView','floorView'].forEach(id=> document.getElementById(id).style.display = 'none');
   document.getElementById('weekView').style.display = 'block';
   renderWeek();
 }
@@ -716,7 +1050,8 @@ function drawWeek(w){
 document.getElementById('navToday').onclick = showTodayView;
 document.getElementById('navMonth').onclick = showMonthView;
 document.getElementById('navWeek').onclick = showWeekView;
-document.getElementById('backBtn').onclick = ()=>{ dayReturnTo==='month' ? showMonthView() : (dayReturnTo==='week' ? showWeekView() : showTodayView()); };
+document.getElementById('navFloor').onclick = showFloorView;
+document.getElementById('backBtn').onclick = ()=>{ dayReturnTo==='month' ? showMonthView() : (dayReturnTo==='week' ? showWeekView() : (dayReturnTo==='floor' ? showFloorView() : showTodayView())); };
 document.getElementById('addFromToday').onclick = ()=> openModal(currentStoreId, [], currentDate);
 document.getElementById('newBtn').onclick = ()=> openModal(currentStoreId, [], currentDate);
 
@@ -1265,10 +1600,11 @@ function openModal(storeId, resourceIds, dateStr, time){
   currentModalStoreId = storeId || STORES[0].id;
   selectedRoomIds = (resourceIds && resourceIds.length) ? resourceIds.slice() : [];
   document.getElementById('modalTitle').textContent = '予約・仮押さえを入れる';
+  busyKey = ''; busyResv = [];
   buildStoreChips();
   buildRoomChips();
   document.getElementById('f_date').value = dateStr || currentDate;
-  busyKey = ''; busyResv = []; setTimeout(loadBusy, 0);
+  setTimeout(loadBusy, 0);
   if(time){
     const [h,m] = time.split(':');
     document.getElementById('f_hour').value = h;
@@ -1404,6 +1740,7 @@ document.getElementById('saveBtn').onclick = ()=>{
       if(document.getElementById('dayView').style.display !== 'none') reloadCurrentView();
       if(document.getElementById('todayView').style.display !== 'none') loadTodayTomorrow();
       if(document.getElementById('monthView').style.display !== 'none') renderMonth();
+      if(document.getElementById('floorView').style.display !== 'none') loadFloor();
     }).withFailureHandler(e=>{
       unlock();
       document.getElementById('modalErr').textContent = (e && e.message) ? e.message : String(e);
@@ -1433,8 +1770,11 @@ updateWhoami();
   let m;
   if((m = h.match(/^month=(\d{4}-\d{2})$/))){ currentMonth = m[1]; showMonthView(); }
   else if((m = h.match(/^week=(\d{4}-\d{2}-\d{2})$/))){ currentWeekStart = m[1]; showWeekView(); }
+  else if((m = h.match(/^floor=(\d{4}-\d{2}-\d{2})$/))){ floorDate = m[1]; showFloorView(); }
   // 「今日」から開いた日の画面は、その日のうちだけ戻す。日付が変わっていたら今日の画面へ（昨日のまま残っていた・2026-10-05）
-  else if((m = h.match(/^day=(\d{4}-\d{2}-\d{2})(?:&from=(\w+))?$/)) && !((m[2] || 'today') === 'today' && m[1] !== localYmd(new Date()))){ showDayView(m[1], m[2] || 'today'); }
+  else if((m = h.match(/^day=(\d{4}-\d{2}-\d{2})(?:&from=(\w+))?$/)) && !((m[2] || 'today') === 'today' && m[1] !== localYmd(new Date()))){
+    if(m[2] === 'floor') floorDate = m[1]; else if(m[2] === 'month') currentMonth = m[1].slice(0,7); else if(m[2] === 'week') currentWeekStart = m[1];
+    showDayView(m[1], m[2] || 'today'); }
   else { showTodayView(); }
   // 月表示を先に読み込んでおく（押したときにすぐ出す）
   setTimeout(()=>{ if(!monthCacheGet(currentMonth)) fetchMonth(currentMonth, false); }, 1500);

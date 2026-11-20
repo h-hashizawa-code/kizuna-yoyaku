@@ -395,7 +395,16 @@ html.sp .hintPc{display:none}
 html.sp .ctrSide{display:none}
 html.sp .frMeal,html.sp .frNote,html.sp .frUnsure{display:none}
 html.sp .fr-star{display:inline}
-@media print{ #todayView .todayFloor{display:none !important} }
+/* ---- 2026-11-20：「今日」は見取り図だけ（表・部屋ごとの予約を出さない）。スマホは縮めて全部の部屋を出し、料理・※注意は箱を押して見る ---- */
+#todayView table.today, #todayTitle, #todayRoomList{display:none !important}
+#todayView .daycard{border:none;padding:0;margin:0;background:none;box-shadow:none}
+#todayFloorTitle{cursor:pointer}
+#todayTempNote{font-size:14px;font-weight:bold;margin:4px 0}
+@media (max-width: 640px){
+  #todayView .ctrSide{display:block}
+}
+html.sp #todayView .ctrSide{display:block}
+@media print{ #todayView .floorLegend{display:none !important} #todayView .floorlayout, #todayView .floorlayout *{-webkit-print-color-adjust:exact;print-color-adjust:exact} }
 
 </style>
 <script>
@@ -420,7 +429,7 @@ function switchView(v){ try{ localStorage.setItem('kizuna_view', v); }catch(e){}
     <div class="tab" id="navToday">今日</div>
     <div class="tab" id="navMonth">月表示</div>
     <div class="tab" id="navWeek">週表示</div>
-    <div class="tab" id="navFloor">見取り図</div>
+    <div class="tab" id="navFloor" style="display:none">見取り図</div>
   </div>
   <div class="whoami" id="whoamiBar" style="display:none">
     <span id="whoamiText"></span>
@@ -436,7 +445,7 @@ function switchView(v){ try{ localStorage.setItem('kizuna_view', v); }catch(e){}
         <span><span class="sw t"></span>仮押さえ</span>
         <span><span class="sw c"></span>予約あり</span>
         <span><span class="sw k"></span>連結</span>
-        <span class="hint hintPc">箱＝開始時刻・人数・お名前／料理／<b style="color:#B23A3A">※注意</b>　押すと詳細が開きます</span><span class="hint hintSp">箱＝時刻・人数・お名前（<b style="color:#B23A3A">※</b>＝注意あり）。料理と注意は下の一覧</span>
+        <span class="hint hintPc">箱＝開始時刻・人数・お名前／料理／<b style="color:#B23A3A">※注意</b>　押すと詳細が開きます</span><span class="hint hintSp">箱＝時刻・人数・お名前（<b style="color:#B23A3A">※</b>＝注意あり）。押すと料理・注意が見られます</span>
       </div>
       <div class="floornote" id="todayFloorNote"></div>
       <div class="floorlayout">
@@ -867,6 +876,7 @@ function floorDetailHtml(r, cls){
        + d.notes.map(n=> '<div class="'+cls+'Note">※'+escapeHtml(n)+'</div>').join('');
 }
 function showFloorView(){
+  if(document.getElementById('navFloor').style.display === 'none'){ showTodayView(); return; } // 2026-11-20 見取り図タブは外した
   if(!floorDate){ floorDate = localYmd(new Date()); }
   if(!floorTime){ floorTime = floorNearestSlot(); }
   rememberView('floor=' + floorDate);
@@ -1250,6 +1260,7 @@ document.getElementById('newBtn').onclick = ()=> openModal(currentStoreId, [], c
 
 /* ---------- 今日・明日 ---------- */
 function loadTodayTomorrow(){
+  document.getElementById('todayFloorTitle').onclick = ()=> showDayView(localYmd(new Date()), 'today');
   document.getElementById('todayFloorTitle').textContent = '本日 ' + fmtJP(localYmd(new Date())) + ' の見取り図';
   loadFloor(FLOOR_TODAY);
   // 最初の1回は、起動時に一緒に受け取った分をすぐ出す（外の画面のとき・通信を1往復減らす）
@@ -1265,6 +1276,7 @@ function loadTodayTomorrow(){
   }
   google.script.run.withSuccessHandler(function(res){ renderTodayTomorrow(res); }).withFailureHandler(function(err){
     if(shown){ return; } // 前回の内容を出しているときは、そのまま残す
+    document.getElementById('todayTempNote').innerHTML = '一覧の読み込みに失敗しました。<a href="#" onclick="loadTodayTomorrow();return false;">もう一度読み込む</a>';
     document.getElementById('todayBody').innerHTML = '<tr><td colspan="7" class="empty-msg">読み込みに失敗しました。<a href="#" onclick="loadTodayTomorrow();return false;">もう一度読み込む</a></td></tr>';
   }).getTodayTomorrow();
 }
@@ -1965,7 +1977,6 @@ updateWhoami();
   let m;
   if((m = h.match(/^month=(\d{4}-\d{2})$/))){ currentMonth = m[1]; showMonthView(); }
   else if((m = h.match(/^week=(\d{4}-\d{2}-\d{2})$/))){ currentWeekStart = m[1]; showWeekView(); }
-  else if((m = h.match(/^floor=(\d{4}-\d{2}-\d{2})$/))){ floorDate = m[1]; showFloorView(); }
   // 「今日」から開いた日の画面は、その日のうちだけ戻す。日付が変わっていたら今日の画面へ（昨日のまま残っていた・2026-10-05）
   else if((m = h.match(/^day=(\d{4}-\d{2}-\d{2})(?:&from=(\w+))?$/)) && !((m[2] || 'today') === 'today' && m[1] !== localYmd(new Date()))){
     if(m[2] === 'floor') floorDate = m[1]; else if(m[2] === 'month') currentMonth = m[1].slice(0,7); else if(m[2] === 'week') currentWeekStart = m[1];

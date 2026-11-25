@@ -991,8 +991,14 @@ function drawFloor(ctx){
   Object.keys(groups).forEach(id=>{ groupColor[id] = FLOOR_LINK_COLORS[gi++ % FLOOR_LINK_COLORS.length]; });
 
   const boxById = {}; boxes.forEach(b=> boxById[b.res.id] = b);
-  // 2026-11-25 橋沢さん：連結は代表の部屋1つだけに時刻・人数・名前を出す。ほかの部屋は「個室Nと連結」だけ
-  const repOf = r=> groups[r.id] ? (boxById[r.resourceIds[0]] ? r.resourceIds[0] : (groups[r.id].find(id=> boxById[id]) || r.resourceIds[0])) : null;
+  // 2026-11-25 橋沢さん：連結は代表の部屋1つだけに時刻・人数・名前・料理を出す（代表＝図でいちばん左、同じ列なら上）。ほかの部屋は「個室Nと連結」だけ
+  const repOf = r=>{
+    if(!groups[r.id]) return null;
+    const bs = groups[r.id].map(id=> boxById[id]).filter(Boolean);
+    if(!bs.length) return r.resourceIds[0];
+    bs.sort((a,b)=> (a.x - b.x) || (a.y - b.y));
+    return bs[0].res.id;
+  };
   const blockFor = (r, roomId)=> (groups[r.id] && repOf(r) !== roomId)
     ? '<div class="fr-b fr-linkonly" data-resv="'+escapeAttr(r.id)+'"><div class="fr-sub">個室'+escapeHtml(roomNumberOf(repOf(r)))+'と連結</div></div>'
     : floorBlockHtml(r);
@@ -1097,15 +1103,40 @@ function drawFloor(ctx){
     ];
     const seatNo = [7,6,5,4,3,2,1];
     html += '<div class="fl bar" style="'+pos(1.1,.7,.5,3.6)+'"></div><div class="fl bar" style="'+pos(1.1,4.3,2.9,.5)+'"></div>';
+    // 2026-11-25 橋沢さん：カウンターも1組ごとに席をまとめ、同じ組の席を棒でつなぐ（席1から順に、時間が重ならない組は同じ席を使える）
+    const NSEAT = 7, seatOwners = {}, seatsOf = {}, colorOf = {};
+    for(let k=1;k<=NSEAT;k++) seatOwners[k] = [];
+    const span = r=>{ const st = toMinSafe(r.start); if(st === null) return null; let e = toMinSafe(r.end); if(e === null) e = st + 120; else if(e <= st) e += 24*60; return [st, e]; };
+    const overlap = (a,b)=>{ const x = span(a), y = span(b); if(!x || !y) return true; return x[0] < y[1] && y[0] < x[1]; };
+    let ci = Object.keys(groups).length;
+    (ctx.allDay ? dayCounter : here).forEach(r=>{
+      const need = Math.min(r.partySize || 1, NSEAT);
+      const free = k=> seatOwners[k].every(o=> !overlap(o, r));
+      let got = null;
+      for(let k=1;k+need-1<=NSEAT && !got;k++){ let ok = true; for(let j=k;j<k+need;j++) if(!free(j)) ok = false; if(ok){ got = []; for(let j=k;j<k+need;j++) got.push(j); } }
+      if(!got){ got = []; for(let k=1;k<=NSEAT && got.length<need;k++) if(free(k)) got.push(k); }
+      if(!got.length) return;
+      seatsOf[r.id] = got; colorOf[r.id] = FLOOR_LINK_COLORS[ci++ % FLOOR_LINK_COLORS.length];
+      got.forEach(k=> seatOwners[k].push(r));
+    });
+    const seatCenter = no=>{ const i = seatNo.indexOf(no); return [seatPos[i][0] + .35, seatPos[i][1] + .35]; };
+    let csvg = '<svg class="flink" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">';
+    Object.keys(seatsOf).forEach(id=>{
+      if(seatsOf[id].length < 2) return;
+      csvg += '<polyline points="'+seatsOf[id].map(no=> seatCenter(no).join(',')).join(' ')+'" fill="none" stroke="'+colorOf[id]+'" stroke-width=".3" stroke-linecap="round" stroke-linejoin="round"/>';
+    });
+    html += csvg + '</svg>';
     for(let i=0;i<7;i++){
-      const no = seatNo[i];
-      // 人数分だけ色を付ける（確定＝ティール・仮押さえ＝黄）。席1から順に埋める
-      const cls = no <= conf ? 'on' : (no <= used ? 'tmp' : '');
-      html += '<div class="fl seat '+cls+'" data-counter="1" style="'+pos(seatPos[i][0],seatPos[i][1],.7,.7)+'">'+no+'</div>';
+      const no = seatNo[i], own = seatOwners[no][0];
+      // 確定＝ティール・仮押さえ＝黄。枠の色＝その組の色（棒と同じ）
+      const cls = own ? (own.status === '確定' ? 'on' : 'tmp') : '';
+      const st = own ? 'border-color:'+colorOf[own.id]+';border-width:3px;' : '';
+      html += '<div class="fl seat '+cls+'" data-counter="1"'+(own ? ' data-resv="'+escapeAttr(own.id)+'"' : '')+' style="'+pos(seatPos[i][0],seatPos[i][1],.7,.7)+st+'">'+no+'</div>';
     }
+    const seatLbl = r=> seatsOf[r.id] ? '（席'+(seatsOf[r.id].length > 1 ? seatsOf[r.id][0]+'〜'+seatsOf[r.id][seatsOf[r.id].length-1] : seatsOf[r.id][0])+'）' : '';
     html += '<div class="fl counter" data-counter="1" style="'+pos(1.85,.7,3.1,3.6)+'">'
       + '<div class="fc-title">カウンター</div>' + sumLabel
-      + dayCounter.slice(0,3).map(r=> '<div class="fc-item'+(r.status==='確定'?'':' temp')+(r.partySize?'':' np')+'" data-resv="'+escapeAttr(r.id)+'">'+escapeHtml(r.name||'仮押さえ')+(r.partySize?' '+r.partySize+'名':' 人数未定')+'</div>').join('')
+      + dayCounter.slice(0,3).map(r=> '<div class="fc-item'+(r.status==='確定'?'':' temp')+(r.partySize?'':' np')+'" data-resv="'+escapeAttr(r.id)+'"'+(colorOf[r.id] ? ' style="border-left:4px solid '+colorOf[r.id]+'"' : '')+'>'+escapeHtml(r.name||'仮押さえ')+(r.partySize?' '+r.partySize+'名':' 人数未定')+seatLbl(r)+'</div>').join('')
       + (dayCounter.length>3 ? '<div class="fc-item">他'+(dayCounter.length-3)+'件</div>' : '')
       + '</div>';
   }

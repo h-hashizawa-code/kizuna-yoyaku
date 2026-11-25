@@ -357,6 +357,7 @@ html.sp .floorbar input[type=date]{flex:1 1 150px}
 .fr-bs{display:flex;flex-direction:column;gap:3px;min-height:0;overflow:hidden}
 .fr-b{border-top:1px solid rgba(0,0,0,.12);padding-top:2px;line-height:1.25}
 .fr-b:first-child{border-top:none;padding-top:0}
+.fr-linkonly .fr-sub{font-weight:bold;white-space:normal}
 .fr-bt{flex-wrap:wrap;display:flex;justify-content:space-between;align-items:baseline;gap:2px;font-size:clamp(9px,calc(var(--u)*.27),13px)}
 .fr-party.np{color:#B23A3A}
 .frMeal{font-size:clamp(9px,calc(var(--u)*.27),14px);color:#00424A;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all}
@@ -990,6 +991,11 @@ function drawFloor(ctx){
   Object.keys(groups).forEach(id=>{ groupColor[id] = FLOOR_LINK_COLORS[gi++ % FLOOR_LINK_COLORS.length]; });
 
   const boxById = {}; boxes.forEach(b=> boxById[b.res.id] = b);
+  // 2026-11-25 橋沢さん：連結は代表の部屋1つだけに時刻・人数・名前を出す。ほかの部屋は「個室Nと連結」だけ
+  const repOf = r=> groups[r.id] ? (boxById[r.resourceIds[0]] ? r.resourceIds[0] : (groups[r.id].find(id=> boxById[id]) || r.resourceIds[0])) : null;
+  const blockFor = (r, roomId)=> (groups[r.id] && repOf(r) !== roomId)
+    ? '<div class="fr-b fr-linkonly" data-resv="'+escapeAttr(r.id)+'"><div class="fr-sub">個室'+escapeHtml(roomNumberOf(repOf(r)))+'と連結</div></div>'
+    : floorBlockHtml(r);
   const pos = (x,y,w,h)=> 'left:'+floorPct(x,W)+';top:'+floorPct(y,H)+';width:'+floorPct(w,W)+';height:'+floorPct(h,H)+';';
   let html = '';
   // 壁と入口（上辺・入口は左から約1/3）
@@ -1026,7 +1032,7 @@ function drawFloor(ctx){
       inner = '<div class="fr-top"><span class="fr-num">'+escapeHtml(n)+'</span>'
         + (shown.length > 1 ? '<span class="fr-multi">'+shown.length+'組</span>' : '')
         + (lk ? '<span class="fr-link" style="color:'+groupColor[r0.id]+'"><span class="fr-lk">連結 </span>'+lk.map(roomNumberOf).join('+')+'</span>' : '') + '</div>'
-        + '<div class="fr-bs">' + shown.map(floorBlockHtml).join('') + '</div>'
+        + '<div class="fr-bs">' + shown.map(r=> blockFor(r, x.id)).join('') + '</div>'
         + (!ctx.allDay && hits.length > 1 ? '<div class="fr-sub">他'+(hits.length-1)+'件</div>' : '');
       attr = ' data-resv="'+escapeAttr(r0.id)+'"';
     }

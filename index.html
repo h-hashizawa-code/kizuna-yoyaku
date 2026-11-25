@@ -1123,14 +1123,14 @@ function drawFloor(ctx){
     let csvg = '<svg class="flink" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">';
     Object.keys(seatsOf).forEach(id=>{
       if(seatsOf[id].length < 2) return;
-      csvg += '<polyline points="'+seatsOf[id].map(no=> seatCenter(no).join(',')).join(' ')+'" fill="none" stroke="'+colorOf[id]+'" stroke-width=".3" stroke-linecap="round" stroke-linejoin="round"/>';
+      csvg += '<polyline points="'+seatsOf[id].map(no=> seatCenter(no).join(',')).join(' ')+'" fill="none" stroke="'+colorOf[id]+'" stroke-width=".1" stroke-opacity=".45" stroke-linecap="round" stroke-linejoin="round"/>';
     });
     html += csvg + '</svg>';
     for(let i=0;i<7;i++){
       const no = seatNo[i], own = seatOwners[no][0];
       // 確定＝ティール・仮押さえ＝黄。枠の色＝その組の色（棒と同じ）
       const cls = own ? (own.status === '確定' ? 'on' : 'tmp') : '';
-      const st = own ? 'border-color:'+colorOf[own.id]+';border-width:3px;' : '';
+      const st = own ? 'border-color:'+colorOf[own.id]+';' : '';
       html += '<div class="fl seat '+cls+'" data-counter="1"'+(own ? ' data-resv="'+escapeAttr(own.id)+'"' : '')+' style="'+pos(seatPos[i][0],seatPos[i][1],.7,.7)+st+'">'+no+'</div>';
     }
     const seatLbl = r=> seatsOf[r.id] ? '（席'+(seatsOf[r.id].length > 1 ? seatsOf[r.id][0]+'〜'+seatsOf[r.id][seatsOf[r.id].length-1] : seatsOf[r.id][0])+'）' : '';
